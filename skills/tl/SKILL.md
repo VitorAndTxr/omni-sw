@@ -69,16 +69,40 @@ Assist planning by identifying technical risks and constraints.
 
 ---
 
+## Backlog Integration
+
+All backlog operations use the backlog management script. Resolve these paths once per session:
+- `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`
+- `SCRIPT` = resolve via Glob `**/backlog/scripts/backlog_manager.py` (once per session, reuse the path)
+
+Use `--caller tl` for all commands. TL can edit stories and change status, but cannot create or delete.
+
+---
+
 ## Phase: Design (`/tl design`)
 
 **Role in phase:** LEADS
 
-Lead the design phase. Produce a comprehensive architecture document.
+Lead the design phase. Produce a comprehensive architecture document. Can spawn dev and qa teammates to review stories in parallel.
 
 **Workflow:**
-1. Read `docs/PROJECT_BRIEF.md` and `docs/BACKLOG.md`.
-2. Read `CLAUDE.md` for stack, conventions, and forbidden patterns.
-3. Design and document:
+1. Read `docs/PROJECT_BRIEF.md`.
+2. Query backlog for Ready stories:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status Ready --format json
+   ```
+3. Read `CLAUDE.md` for stack, conventions, and forbidden patterns.
+4. Update story statuses to "In Design":
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Design" --caller tl
+   ```
+5. **Team orchestration (optional):** For multiple stories, spawn teammates to parallelize:
+   - Use `TeamCreate` with name `design-{project}`.
+   - Spawn dev teammate to review stories for implementability.
+   - Spawn qa teammate to review stories for testability.
+   - Use `TaskCreate` to assign story groups to each teammate.
+   - Collect feedback before finalizing architecture.
+6. Design and document:
    - **System Overview:** High-level architecture diagram (Mermaid)
    - **Tech Stack:** Runtime, framework, database, infrastructure with justification
    - **Data Models:** Entity definitions, relationships (Mermaid ERD)
@@ -87,14 +111,15 @@ Lead the design phase. Produce a comprehensive architecture document.
    - **Error Handling Strategy:** Error codes, logging, retry policies
    - **Security Considerations:** Authentication, authorization, input validation
    - **Project Structure:** Directory layout and file organization
-4. Produce `docs/ARCHITECTURE.md` following the template in `~/.claude/docs/templates/ARCHITECTURE.md`.
-5. After completing, instruct the user to run the Validate gate: `/pm validate` and `/tl validate`.
+7. Produce `docs/ARCHITECTURE.md` following the template in `~/.claude/docs/templates/ARCHITECTURE.md`.
+8. Render updated backlog: `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+9. After completing, instruct the user to run the Validate gate: `/pm validate` and `/tl validate`.
 
 **Output:** `docs/ARCHITECTURE.md`
 
-**Allowed tools:** Read, Write, Edit, Glob, Grep, WebSearch
+**Allowed tools:** Read, Write, Edit, Bash, Glob, Grep, WebSearch, Task, TaskCreate, TaskUpdate, TaskList, TeamCreate, SendMessage
 
-**Input artifacts:** `docs/PROJECT_BRIEF.md`, `docs/BACKLOG.md`, `CLAUDE.md`
+**Input artifacts:** `docs/PROJECT_BRIEF.md`, `agent_docs/backlog/backlog.json`, `CLAUDE.md`
 
 ---
 
@@ -106,7 +131,10 @@ Lead the technical validation gate. Assess whether the design is feasible and so
 
 **Workflow:**
 1. Read `docs/ARCHITECTURE.md`.
-2. Read `docs/BACKLOG.md` for acceptance criteria.
+2. Query the backlog for stories in design:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Design" --format json
+   ```
 3. Read `CLAUDE.md` for stack constraints.
 4. Evaluate:
    - Is the architecture feasible with the chosen stack?
@@ -116,15 +144,20 @@ Lead the technical validation gate. Assess whether the design is feasible and so
    - Are error scenarios handled?
    - Is the project structure well-organized?
 5. Produce a verdict: **APPROVED** or **REPROVED** with detailed rationale.
-6. Write the technical validation section in `docs/VALIDATION.md`.
-7. If REPROVED: specify what needs to change and instruct the user to go back to `/tl design`.
-8. If APPROVED and PM also approved: instruct the user to proceed to `/dev implement`.
+6. If APPROVED, transition stories to Validated:
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status Validated --caller tl
+   ```
+7. Write the technical validation section in `docs/VALIDATION.md`.
+8. Render updated backlog: `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+9. If REPROVED: specify what needs to change and instruct the user to go back to `/tl design`.
+10. If APPROVED and PM also approved: instruct the user to proceed to `/dev implement`.
 
 **Output:** Technical validation section in `docs/VALIDATION.md`
 
-**Allowed tools:** Read, Write, Edit, WebSearch
+**Allowed tools:** Read, Write, Edit, Bash, WebSearch
 
-**Input artifacts:** `docs/ARCHITECTURE.md`, `docs/BACKLOG.md`, `CLAUDE.md`
+**Input artifacts:** `docs/ARCHITECTURE.md`, `agent_docs/backlog/backlog.json`, `CLAUDE.md`
 
 ---
 
@@ -155,7 +188,10 @@ Lead the code review phase. Perform a structured review of the implemented code.
 
 **Workflow:**
 1. Read `docs/ARCHITECTURE.md` for the approved design.
-2. Read `docs/BACKLOG.md` for acceptance criteria.
+2. Query stories in review:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format json
+   ```
 3. Explore the source code using Glob and Grep.
 4. Read all source files.
 5. Review for:
@@ -167,14 +203,14 @@ Lead the code review phase. Perform a structured review of the implemented code.
    - **Convention adherence:** Follows patterns defined in `CLAUDE.md`
 6. Produce `docs/REVIEW.md` following the template in `~/.claude/docs/templates/REVIEW.md`.
 7. If issues found: categorize as **blocking** (must fix) or **suggestion** (nice to have).
-8. If blocking issues exist: instruct user to run `/dev implement` to fix them, then re-review.
+8. If blocking issues exist: transition stories back to "In Progress" and instruct user to run `/dev implement`.
 9. If no blocking issues: instruct user to proceed to `/qa test`.
 
 **Output:** `docs/REVIEW.md`
 
-**Allowed tools:** Read, Write, Edit, Glob, Grep (read-only on source code)
+**Allowed tools:** Read, Write, Edit, Bash, Glob, Grep (read-only on source code)
 
-**Input artifacts:** `docs/ARCHITECTURE.md`, `docs/BACKLOG.md`, `CLAUDE.md`, source code
+**Input artifacts:** `docs/ARCHITECTURE.md`, `agent_docs/backlog/backlog.json`, `CLAUDE.md`, source code
 
 ---
 

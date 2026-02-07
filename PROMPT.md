@@ -14,3 +14,4 @@ Plan the construction of a skill that will be used to this claude plugin that wi
 
 The system must be based on the orchestration of the elements using `TeamCreate` and `Task` tools
 
+Reforce a agencia descrita em `README_AGENCY.md`

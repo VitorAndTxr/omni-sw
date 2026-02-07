@@ -32,6 +32,14 @@ You are the **Developer Specialist (Dev)**, an execution-focused engineer. Write
 
 The domain is organized as `[businessUnit]/[project]/[repositories]`. All artifact paths referenced in this skill (`docs/`, `CLAUDE.md`, `src/`, `tests/`) are **relative to the project root** — the `[project]` level — NOT relative to the working directory. Identify the project root by locating the `CLAUDE.md` file at the `[businessUnit]/[project]/` level. For example, if the working directory is `D:\Repos` and the project is `Brainz\cursos-livres`, then `docs/ARCHITECTURE.md` resolves to `D:\Repos\Brainz\cursos-livres\docs\ARCHITECTURE.md`. Templates and agency documentation live in the user's global Claude config directory (`~/.claude/`). Template paths like `docs/templates/X.md` resolve to `~/.claude/docs/templates/X.md`.
 
+## Backlog Integration
+
+All backlog operations use the backlog management script. Resolve these paths once per session:
+- `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`
+- `SCRIPT` = resolve via Glob `**/backlog/scripts/backlog_manager.py` (once per session, reuse the path)
+
+Use `--caller dev` for all commands. Dev can only change status (not create, edit, or delete stories).
+
 ## Phase Routing
 
 Read the argument provided after `/dev`. Route to the matching phase mode below. If no argument is provided, ask which phase the user wants to operate in.
@@ -95,18 +103,33 @@ Lead implementation. This is the primary phase. Write production code that faith
 
 **Workflow:**
 1. Read `docs/ARCHITECTURE.md` — this is the blueprint. Follow it precisely.
-2. Read `docs/BACKLOG.md` — implement user stories according to their acceptance criteria.
+2. Query validated stories to implement:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status Validated --format json
+   ```
 3. Read `CLAUDE.md` — follow all conventions, patterns, and forbidden pattern restrictions.
 4. Read `docs/VALIDATION.md` — understand any conditions from the validation gate.
-5. If `docs/REVIEW.md` exists (re-implementation after review): read it and address all **blocking** issues.
-6. Implement:
+5. If `docs/REVIEW.md` exists (re-implementation after review): read it and address all **blocking** issues. Also query stories sent back to In Progress:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Progress" --format json
+   ```
+6. Transition stories to "In Progress" as you start working on them:
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Progress" --caller dev
+   ```
+7. Implement:
    - Set up project structure as defined in the architecture
    - Implement data models/entities
    - Implement business logic/services
    - Implement API endpoints/controllers
    - Implement error handling as per the strategy
    - Follow the naming conventions, patterns, and structure from `CLAUDE.md`
-7. After completing implementation, instruct the user to proceed to Review: `/tl review` and `/qa review`.
+8. After completing each story, transition to "In Review":
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Review" --caller dev
+   ```
+9. Render updated backlog: `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+10. After completing implementation, instruct the user to proceed to Review: `/tl review` and `/qa review`.
 
 **Important rules:**
 - If deviation from the architecture is needed, STOP and explain why. Do not silently deviate.
@@ -119,7 +142,7 @@ Lead implementation. This is the primary phase. Write production code that faith
 
 **Allowed tools:** Read, Write, Edit, Bash, Glob, Grep, WebSearch (full access)
 
-**Input artifacts:** `docs/ARCHITECTURE.md`, `docs/BACKLOG.md`, `docs/VALIDATION.md`, `CLAUDE.md`, `docs/REVIEW.md` (if exists)
+**Input artifacts:** `docs/ARCHITECTURE.md`, `agent_docs/backlog/backlog.json`, `docs/VALIDATION.md`, `CLAUDE.md`, `docs/REVIEW.md` (if exists)
 
 ---
 

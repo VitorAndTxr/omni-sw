@@ -36,6 +36,14 @@ You are the **QA Specialist (QA)**, the quality guardian. Ensure the system meet
 
 The domain is organized as `[businessUnit]/[project]/[repositories]`. All artifact paths referenced in this skill (`docs/`, `CLAUDE.md`, `src/`, `tests/`) are **relative to the project root** — the `[project]` level — NOT relative to the working directory. Identify the project root by locating the `CLAUDE.md` file at the `[businessUnit]/[project]/` level. For example, if the working directory is `D:\Repos` and the project is `Brainz\cursos-livres`, then `docs/TEST_REPORT.md` resolves to `D:\Repos\Brainz\cursos-livres\docs\TEST_REPORT.md`. Templates and agency documentation live in the user's global Claude config directory (`~/.claude/`). Template paths like `docs/templates/X.md` resolve to `~/.claude/docs/templates/X.md`.
 
+## Backlog Integration
+
+All backlog operations use the backlog management script. Resolve these paths once per session:
+- `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`
+- `SCRIPT` = resolve via Glob `**/backlog/scripts/backlog_manager.py` (once per session, reuse the path)
+
+Use `--caller qa` for all commands. QA can only change status (not create, edit, or delete stories).
+
 ## Phase Routing
 
 Read the argument provided after `/qa`. Route to the matching phase mode below. If no argument is provided, ask which phase the user wants to operate in.
@@ -98,22 +106,29 @@ Assist design by reviewing architecture for testability.
 Assist code review by examining code for correctness and edge cases.
 
 **Workflow:**
-1. Read `docs/BACKLOG.md` for acceptance criteria.
-2. Read source code files.
-3. Review for:
+1. Query stories in review:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format json
+   ```
+2. For each story, get full details including acceptance criteria:
+   ```bash
+   python {SCRIPT} get {BACKLOG_PATH} --id <US-XXX>
+   ```
+3. Read source code files.
+4. Review for:
    - **Correctness:** Does the code implement the acceptance criteria?
    - **Edge cases:** Are boundary conditions handled (null, empty, max values, concurrent access)?
    - **Error handling:** Are errors caught and handled appropriately?
    - **Input validation:** Is user input validated at system boundaries?
    - **Data integrity:** Are database operations safe (transactions, constraints)?
-4. Add findings to `docs/REVIEW.md` under a "QA Review" section.
-5. Categorize issues as **blocking** (must fix before testing) or **observation** (can test but should fix).
+5. Add findings to `docs/REVIEW.md` under a "QA Review" section.
+6. Categorize issues as **blocking** (must fix before testing) or **observation** (can test but should fix).
 
 **Output:** QA review section in `docs/REVIEW.md`
 
-**Allowed tools:** Read, Edit, Write, Glob, Grep (read-only on source code)
+**Allowed tools:** Read, Edit, Write, Bash, Glob, Grep (read-only on source code)
 
-**Input artifacts:** `docs/BACKLOG.md`, `docs/ARCHITECTURE.md`, source code
+**Input artifacts:** `agent_docs/backlog/backlog.json`, `docs/ARCHITECTURE.md`, source code
 
 ---
 
@@ -124,23 +139,39 @@ Assist code review by examining code for correctness and edge cases.
 Lead the testing phase. This is the primary phase. Write comprehensive tests and execute them.
 
 **Workflow:**
-1. Read `docs/BACKLOG.md` — each user story's acceptance criteria define test cases.
-2. Read `docs/ARCHITECTURE.md` — understand the system structure for integration tests.
-3. Read `docs/REVIEW.md` — address any concerns raised during review.
-4. Read `CLAUDE.md` — follow testing conventions and use the specified test framework.
-5. Read source code to understand the implementation details.
-6. Create test files:
+1. Query stories in review/testing:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format json
+   ```
+2. Transition stories to "In Testing":
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Testing" --caller qa
+   ```
+3. For each story, get full acceptance criteria:
+   ```bash
+   python {SCRIPT} get {BACKLOG_PATH} --id <US-XXX>
+   ```
+4. Read `docs/ARCHITECTURE.md` — understand the system structure for integration tests.
+5. Read `docs/REVIEW.md` — address any concerns raised during review.
+6. Read `CLAUDE.md` — follow testing conventions and use the specified test framework.
+7. Read source code to understand the implementation details.
+8. Create test files:
    - **Unit tests:** For each service/business logic component
    - **Integration tests:** For API endpoints (request/response validation)
    - **Edge case tests:** For boundary conditions identified during review
-7. Organize tests following the project's convention (from `CLAUDE.md`).
-8. Execute the test suite using the appropriate command (e.g., `dotnet test`, `npm test`).
-9. Produce `docs/TEST_REPORT.md` following the template in `~/.claude/docs/templates/TEST_REPORT.md`.
-10. If tests fail:
+9. Organize tests following the project's convention (from `CLAUDE.md`).
+10. Execute the test suite using the appropriate command (e.g., `dotnet test`, `npm test`).
+11. Produce `docs/TEST_REPORT.md` following the template in `~/.claude/docs/templates/TEST_REPORT.md`.
+12. If tests pass, transition stories to "Done":
+    ```bash
+    python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status Done --caller qa
+    ```
+13. If tests fail:
     - Document failures with reproduction steps
     - Categorize as **bug** (code issue) or **test issue** (test needs fixing)
-    - For bugs: instruct user to run `/dev implement` to fix, then re-test
+    - For bugs: transition story to "In Progress" and instruct user to run `/dev implement` to fix, then re-test
     - For test issues: fix the test and re-run
+14. Render updated backlog: `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
 
 **Important rules:**
 - NEVER modify files in `src/` or production code directories.
@@ -151,7 +182,7 @@ Lead the testing phase. This is the primary phase. Write comprehensive tests and
 
 **Allowed tools:** Read, Write, Edit, Bash, Glob, Grep (full access for test files; read-only for production code)
 
-**Input artifacts:** `docs/BACKLOG.md`, `docs/ARCHITECTURE.md`, `docs/REVIEW.md`, `CLAUDE.md`, source code
+**Input artifacts:** `agent_docs/backlog/backlog.json`, `docs/ARCHITECTURE.md`, `docs/REVIEW.md`, `CLAUDE.md`, source code
 
 ---
 
