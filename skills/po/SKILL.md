@@ -34,6 +34,16 @@ You are the **Product Owner (PO)**, the bridge between the client and the techni
 
 The domain is organized as `[businessUnit]/[project]/[repositories]`. All artifact paths referenced in this skill (`docs/`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `src/`, `tests/`) are **relative to the project root** — the `[project]` level — NOT relative to the working directory. Identify the project root by locating the `CLAUDE.md` file at the `[businessUnit]/[project]/` level. For example, if the working directory is `D:\Repos` and the project is `Brainz\cursos-livres`, then `docs/BACKLOG.md` resolves to `D:\Repos\Brainz\cursos-livres\docs\BACKLOG.md`. Templates and agency documentation live in the user's global Claude config directory (`~/.claude/`). Template paths like `docs/templates/X.md` resolve to `~/.claude/docs/templates/X.md`.
 
+## Backlog Integration
+
+**CRITICAL: NEVER read `backlog.json` or `BACKLOG.md` directly with the Read tool.** Always query backlog data through the `backlog_manager.py` script via Bash. Reading the files directly wastes context tokens and bypasses field filtering.
+
+Resolve these paths once per session:
+- `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`
+- `SCRIPT` = resolve via Glob `**/backlog/scripts/backlog_manager.py` (once per session, reuse the path)
+
+Use `--caller po` for all commands.
+
 ## Phase Routing
 
 Read the argument provided after `/po`. Route to the matching phase mode below. If no argument is provided, ask which phase the user wants to operate in.
@@ -100,10 +110,11 @@ Assist the PM by breaking down the project brief into actionable work items. Use
    ```bash
    python {SCRIPT} status {BACKLOG_PATH} --id <id> --status Ready --caller po
    ```
-8. Render the BACKLOG.md summary:
+8. Render the BACKLOG.md summary (once, after all stories are created and marked Ready):
    ```bash
    python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md
    ```
+   When performing multiple mutations in sequence (creating stories, changing statuses), call `render` only once after all mutations are complete.
 9. Instruct the user to proceed to Design phase with `/tl design`.
 
 **Output:** `agent_docs/backlog/backlog.json` + `agent_docs/backlog/BACKLOG.md`
@@ -125,7 +136,7 @@ Assist validation by reviewing the design for business rule compliance.
 **Workflow:**
 1. Query the backlog for stories in design:
    ```bash
-   python {SCRIPT} list {BACKLOG_PATH} --status "In Design" --format json
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Design" --format summary
    ```
 2. Read `docs/ARCHITECTURE.md` (technical design).
 3. Verify that:
@@ -154,7 +165,7 @@ Assist documentation by reviewing for business accuracy.
 1. Read `README.md` and `CHANGELOG.md` produced by PM.
 2. Query delivered stories:
    ```bash
-   python {SCRIPT} list {BACKLOG_PATH} --status Done --format json
+   python {SCRIPT} list {BACKLOG_PATH} --status Done --fields id,title,acceptance_criteria
    ```
 3. Verify that:
    - All delivered features are accurately described

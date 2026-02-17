@@ -38,6 +38,8 @@ The domain is organized as `[businessUnit]/[project]/[repositories]`. All artifa
 
 ## Backlog Integration
 
+**CRITICAL: NEVER read `backlog.json` or `BACKLOG.md` directly with the Read tool.** Always query backlog data through the `backlog_manager.py` script via Bash. Reading the files directly wastes context tokens and bypasses field filtering.
+
 All backlog operations use the backlog management script. Resolve these paths once per session:
 - `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`
 - `SCRIPT` = resolve via Glob `**/backlog/scripts/backlog_manager.py` (once per session, reuse the path)
@@ -108,7 +110,7 @@ Assist code review by examining code for correctness and edge cases.
 **Workflow:**
 1. Query stories in review:
    ```bash
-   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format json
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format summary
    ```
 2. For each story, get full details including acceptance criteria:
    ```bash
@@ -141,7 +143,7 @@ Lead the testing phase. This is the primary phase. Write comprehensive tests and
 **Workflow:**
 1. Query stories in review/testing:
    ```bash
-   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format json
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format summary
    ```
 2. Transition stories to "In Testing":
    ```bash
@@ -171,7 +173,8 @@ Lead the testing phase. This is the primary phase. Write comprehensive tests and
     - Categorize as **bug** (code issue) or **test issue** (test needs fixing)
     - For bugs: transition story to "In Progress" and instruct user to run `/dev implement` to fix, then re-test
     - For test issues: fix the test and re-run
-14. Render updated backlog: `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+14. Render updated backlog (once, after all status transitions are complete): `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+    When performing multiple mutations in sequence, call `render` only once after all mutations are complete.
 
 **Important rules:**
 - NEVER modify files in `src/` or production code directories.

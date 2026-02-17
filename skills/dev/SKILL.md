@@ -34,6 +34,8 @@ The domain is organized as `[businessUnit]/[project]/[repositories]`. All artifa
 
 ## Backlog Integration
 
+**CRITICAL: NEVER read `backlog.json` or `BACKLOG.md` directly with the Read tool.** Always query backlog data through the `backlog_manager.py` script via Bash. Reading the files directly wastes context tokens and bypasses field filtering.
+
 All backlog operations use the backlog management script. Resolve these paths once per session:
 - `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`
 - `SCRIPT` = resolve via Glob `**/backlog/scripts/backlog_manager.py` (once per session, reuse the path)
@@ -128,7 +130,8 @@ Lead implementation. This is the primary phase. Write production code that faith
    ```bash
    python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Review" --caller dev
    ```
-9. Render updated backlog: `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+9. Render updated backlog (once, after all status transitions are complete): `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+   When performing multiple mutations in sequence (transitioning multiple stories), call `render` only once after all mutations are complete.
 10. After completing implementation, instruct the user to proceed to Review: `/tl review` and `/qa review`.
 
 **Important rules:**

@@ -21,7 +21,8 @@ Commands:
              --caller <po|pm|tl|dev|qa>
 
     list     <backlog_path> [--status <status>] [--feature <area>] [--priority <priority>]
-             [--format <json|table|summary>]
+             [--format <json|table|summary>] [--fields <field1,field2,...>]
+             [--limit <N>] [--offset <N>]
 
     get      <backlog_path> --id <US-XXX>
 
@@ -30,6 +31,8 @@ Commands:
     init     <backlog_path>  (creates empty backlog structure)
 
     render   <backlog_path> --output <BACKLOG.md path>  (generates markdown summary)
+
+    stats    <backlog_path>  (returns aggregate counts by status, priority, feature)
 
     question <backlog_path> --text <question_text> --caller <po|pm|tl|dev|qa>
              [--id <Q-XXX>] [--answer <answer_text>] [--resolve]
@@ -165,7 +168,7 @@ def cmd_create(args):
 
     data["stories"].append(story)
     save_backlog(args.backlog_path, data)
-    print(json.dumps({"success": True, "story": story}))
+    print(json.dumps({"success": True, "id": story["id"]}))
 
 
 def cmd_edit(args):
@@ -208,7 +211,7 @@ def cmd_edit(args):
     )
 
     save_backlog(args.backlog_path, data)
-    print(json.dumps({"success": True, "story": story, "changes": list(changes.keys())}))
+    print(json.dumps({"success": True, "id": args.id, "changes": list(changes.keys())}))
 
 
 def cmd_status(args):
@@ -243,6 +246,20 @@ def cmd_status(args):
     print(json.dumps({"success": True, "id": args.id, "old_status": old_status, "new_status": args.status}))
 
 
+AUDIT_FIELDS = {"history", "created_at", "updated_at", "created_by"}
+
+LIST_DEFAULT_FIELDS = [
+    "id", "title", "feature_area", "priority", "role", "want", "benefit",
+    "acceptance_criteria", "notes", "dependencies", "status",
+]
+
+SUMMARY_DEFAULT_FIELDS = ["id", "title", "status", "priority", "feature_area"]
+
+
+def _pick_fields(story: dict, fields: list[str]) -> dict:
+    return {k: story.get(k, "-") for k in fields}
+
+
 def cmd_list(args):
     data = load_backlog(args.backlog_path)
     stories = data["stories"]
@@ -254,27 +271,57 @@ def cmd_list(args):
     if args.priority:
         stories = [s for s in stories if s.get("priority") == args.priority]
 
+    total = len(stories)
+
+    if args.offset:
+        stories = stories[args.offset:]
+    if args.limit:
+        stories = stories[: args.limit]
+
+    custom_fields = None
+    if args.fields:
+        custom_fields = [f.strip() for f in args.fields.split(",")]
+
     fmt = args.format or "summary"
 
     if fmt == "json":
-        print(json.dumps({"stories": stories, "count": len(stories)}))
+        fields = custom_fields or LIST_DEFAULT_FIELDS
+        projected = [_pick_fields(s, fields) for s in stories]
+        print(json.dumps({"stories": projected, "count": total}))
     elif fmt == "table":
-        lines = ["ID | Title | Priority | Status | Feature"]
-        lines.append("---|-------|----------|--------|--------")
+        fields = custom_fields or ["id", "title", "priority", "status", "feature_area"]
+        header = " | ".join(fields)
+        sep = " | ".join("---" for _ in fields)
+        lines = [header, sep]
         for s in stories:
-            lines.append(f"{s['id']} | {s['title']} | {s.get('priority','-')} | {s['status']} | {s.get('feature_area','-')}")
+            row = " | ".join(str(s.get(f, "-")) for f in fields)
+            lines.append(row)
         print("\n".join(lines))
     else:
-        result = {"count": len(stories), "stories": []}
-        for s in stories:
-            result["stories"].append({
-                "id": s["id"],
-                "title": s["title"],
-                "status": s["status"],
-                "priority": s.get("priority", "-"),
-                "feature_area": s.get("feature_area", "-"),
-            })
-        print(json.dumps(result))
+        fields = custom_fields or SUMMARY_DEFAULT_FIELDS
+        projected = [_pick_fields(s, fields) for s in stories]
+        print(json.dumps({"stories": projected, "count": total}))
+
+
+def cmd_stats(args):
+    data = load_backlog(args.backlog_path)
+    stories = data["stories"]
+    by_status = {}
+    by_priority = {}
+    by_feature = {}
+    for s in stories:
+        st = s.get("status", "Unknown")
+        by_status[st] = by_status.get(st, 0) + 1
+        pr = s.get("priority", "Unknown")
+        by_priority[pr] = by_priority.get(pr, 0) + 1
+        fa = s.get("feature_area", "Uncategorized")
+        by_feature[fa] = by_feature.get(fa, 0) + 1
+    print(json.dumps({
+        "total": len(stories),
+        "by_status": by_status,
+        "by_priority": by_priority,
+        "by_feature": by_feature,
+    }))
 
 
 def cmd_get(args):
@@ -307,7 +354,17 @@ def cmd_render(args):
     stories = data["stories"]
     questions = data.get("questions", [])
 
-    lines = ["# Product Backlog", ""]
+    lines = [
+        "<!-- AGENT NOTICE: This file is auto-generated and for HUMAN reading only.",
+        "     DO NOT read this file to query backlog data. Use the backlog_manager.py script instead:",
+        "     - Overview: python {script} stats {backlog_path}",
+        "     - List:     python {script} list {backlog_path} --format summary",
+        "     - Detail:   python {script} get {backlog_path} --id US-XXX",
+        "     Reading this file wastes context tokens and may contain stale data. -->",
+        "",
+        "# Product Backlog",
+        "",
+    ]
     lines.append(f"> Auto-generated from `backlog.json` — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     lines.append("")
 
@@ -509,6 +566,13 @@ def main():
     p_list.add_argument("--feature")
     p_list.add_argument("--priority")
     p_list.add_argument("--format", choices=["json", "table", "summary"], default="summary")
+    p_list.add_argument("--fields", default=None, help="Comma-separated field names to return")
+    p_list.add_argument("--limit", type=int, default=None, help="Max stories to return")
+    p_list.add_argument("--offset", type=int, default=None, help="Skip first N stories")
+
+    # stats
+    p_stats = subparsers.add_parser("stats")
+    p_stats.add_argument("backlog_path")
 
     # get
     p_get = subparsers.add_parser("get")
@@ -547,6 +611,7 @@ def main():
         "edit": cmd_edit,
         "status": cmd_status,
         "list": cmd_list,
+        "stats": cmd_stats,
         "get": cmd_get,
         "delete": cmd_delete,
         "render": cmd_render,

@@ -71,6 +71,8 @@ Assist planning by identifying technical risks and constraints.
 
 ## Backlog Integration
 
+**CRITICAL: NEVER read `backlog.json` or `BACKLOG.md` directly with the Read tool.** Always query backlog data through the `backlog_manager.py` script via Bash. Reading the files directly wastes context tokens and bypasses field filtering.
+
 All backlog operations use the backlog management script. Resolve these paths once per session:
 - `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`
 - `SCRIPT` = resolve via Glob `**/backlog/scripts/backlog_manager.py` (once per session, reuse the path)
@@ -112,7 +114,8 @@ Lead the design phase. Produce a comprehensive architecture document. Can spawn 
    - **Security Considerations:** Authentication, authorization, input validation
    - **Project Structure:** Directory layout and file organization
 7. Produce `docs/ARCHITECTURE.md` following the template in `~/.claude/docs/templates/ARCHITECTURE.md`.
-8. Render updated backlog: `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+8. Render updated backlog (once, after all status transitions are complete): `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+   When performing multiple mutations in sequence, call `render` only once after all mutations are complete.
 9. After completing, instruct the user to run the Validate gate: `/pm validate` and `/tl validate`.
 
 **Output:** `docs/ARCHITECTURE.md`
@@ -133,7 +136,7 @@ Lead the technical validation gate. Assess whether the design is feasible and so
 1. Read `docs/ARCHITECTURE.md`.
 2. Query the backlog for stories in design:
    ```bash
-   python {SCRIPT} list {BACKLOG_PATH} --status "In Design" --format json
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Design" --fields id,title,acceptance_criteria,dependencies
    ```
 3. Read `CLAUDE.md` for stack constraints.
 4. Evaluate:
@@ -149,7 +152,7 @@ Lead the technical validation gate. Assess whether the design is feasible and so
    python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status Validated --caller tl
    ```
 7. Write the technical validation section in `docs/VALIDATION.md`.
-8. Render updated backlog: `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
+8. Render updated backlog (once, after all status transitions): `python {SCRIPT} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md`
 9. If REPROVED: specify what needs to change and instruct the user to go back to `/tl design`.
 10. If APPROVED and PM also approved: instruct the user to proceed to `/dev implement`.
 
@@ -190,7 +193,7 @@ Lead the code review phase. Perform a structured review of the implemented code.
 1. Read `docs/ARCHITECTURE.md` for the approved design.
 2. Query stories in review:
    ```bash
-   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format json
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --fields id,title,acceptance_criteria
    ```
 3. Explore the source code using Glob and Grep.
 4. Read all source files.

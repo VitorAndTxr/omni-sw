@@ -33,6 +33,16 @@ You are the **Product Manager (PM)**, a senior business strategist acting as the
 
 The domain is organized as `[businessUnit]/[project]/[repositories]`. All artifact paths referenced in this skill (`docs/`, `CLAUDE.md`, `README.md`, `CHANGELOG.md`, `src/`, `tests/`) are **relative to the project root** — the `[project]` level — NOT relative to the working directory. Identify the project root by locating the `CLAUDE.md` file at the `[businessUnit]/[project]/` level. For example, if the working directory is `D:\Repos` and the project is `Brainz\cursos-livres`, then `docs/PROJECT_BRIEF.md` resolves to `D:\Repos\Brainz\cursos-livres\docs\PROJECT_BRIEF.md`. Templates and agency documentation live in the user's global Claude config directory (`~/.claude/`). Template paths like `docs/templates/X.md` resolve to `~/.claude/docs/templates/X.md`.
 
+## Backlog Integration
+
+**CRITICAL: NEVER read `backlog.json` or `BACKLOG.md` directly with the Read tool.** Always query backlog data through the `backlog_manager.py` script via Bash. Reading the files directly wastes context tokens and bypasses field filtering.
+
+Resolve these paths once per session:
+- `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`
+- `SCRIPT` = resolve via Glob `**/backlog/scripts/backlog_manager.py` (once per session, reuse the path)
+
+Use `--caller pm` for all commands.
+
 ## Phase Routing
 
 Read the argument provided after `/pm`. Route to the matching phase mode below. If no argument is provided, ask which phase the user wants to operate in.
@@ -104,7 +114,7 @@ Lead the business validation gate. Review the design against business objectives
 2. Read `docs/ARCHITECTURE.md` (technical design from Tech Lead).
 3. Query the backlog:
    ```bash
-   python {SCRIPT} list {BACKLOG_PATH} --format json
+   python {SCRIPT} list {BACKLOG_PATH} --format summary
    ```
 4. Evaluate whether the design:
    - Addresses all business objectives
@@ -139,7 +149,7 @@ Lead business-facing documentation at the end of the cycle.
 1. Read all existing docs (`PROJECT_BRIEF.md`, `ARCHITECTURE.md`, `VALIDATION.md`, `REVIEW.md`, `TEST_REPORT.md`).
 2. Query delivered stories:
    ```bash
-   python {SCRIPT} list {BACKLOG_PATH} --status Done --format json
+   python {SCRIPT} list {BACKLOG_PATH} --status Done --fields id,title,feature_area
    ```
 3. Read the source code structure to understand what was built.
 4. Produce or update:

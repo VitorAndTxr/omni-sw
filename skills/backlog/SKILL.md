@@ -104,6 +104,27 @@ Valid statuses: `Draft`, `Ready`, `In Design`, `Validated`, `In Progress`, `In R
 python {script} list {BACKLOG_PATH} --status Ready --format summary
 python {script} list {BACKLOG_PATH} --feature "Authentication" --format json
 python {script} list {BACKLOG_PATH} --priority Must --format table
+python {script} list {BACKLOG_PATH} --fields id,title,status
+python {script} list {BACKLOG_PATH} --status "In Progress" --limit 5
+python {script} list {BACKLOG_PATH} --limit 10 --offset 10
+```
+
+- `--fields <field1,field2,...>` — return only the specified fields. Overrides format defaults for both `json` and `summary`. Valid fields: `id`, `title`, `feature_area`, `priority`, `role`, `want`, `benefit`, `acceptance_criteria`, `notes`, `dependencies`, `status`.
+- `--limit <N>` — return at most N stories after filtering.
+- `--offset <N>` — skip the first N stories before applying limit.
+- The `json` format returns story content fields only (no audit metadata like `history`, `created_at`, `updated_at`, `created_by`). Use `get` for full audit data on a single story.
+
+### Aggregate stats (counts only)
+
+```bash
+python {script} stats {BACKLOG_PATH}
+```
+
+Returns counts by status, priority, and feature area without any story content. Use this instead of `list` when you only need progress numbers (e.g., gate checks, phase overviews).
+
+Example output:
+```json
+{"total": 32, "by_status": {"Ready": 5, "In Progress": 3}, "by_priority": {"Must": 12}, "by_feature": {"Auth": 8}}
 ```
 
 ### Get single story (full detail)
@@ -111,6 +132,8 @@ python {script} list {BACKLOG_PATH} --priority Must --format table
 ```bash
 python {script} get {BACKLOG_PATH} --id US-001
 ```
+
+Returns the complete story object including all audit fields (`history`, `created_at`, `updated_at`, `created_by`). Use for single-story audits and detailed inspection.
 
 ### Delete story
 
@@ -124,7 +147,7 @@ python {script} delete {BACKLOG_PATH} --id US-001 --caller po
 python {script} render {BACKLOG_PATH} --output {project_root}/agent_docs/backlog/BACKLOG.md
 ```
 
-Always render after modifying stories to keep the markdown summary in sync.
+When performing multiple mutations in sequence (e.g., creating multiple stories, transitioning multiple statuses), call `render` only once after all mutations are complete. Do NOT render after every individual mutation.
 
 ### Manage open questions
 
@@ -144,7 +167,25 @@ When an agent skill (po, pm, tl, dev, qa) needs to interact with the backlog, re
 2. Set `BACKLOG_PATH={project_root}/agent_docs/backlog/backlog.json`.
 3. Resolve `{SCRIPT}` via Glob: `**/backlog/scripts/backlog_manager.py` (once per session, reuse the result).
 4. Call the appropriate command with `--caller` matching the agent's role.
-5. After any mutation, call `render` to update `BACKLOG.md`.
+5. After completing a batch of mutations, call `render` once to update `BACKLOG.md`. Do NOT render after every individual mutation.
+
+## Mutation Response Format
+
+`create` and `edit` return slim confirmations to minimize context usage:
+- **create:** `{"success": true, "id": "US-001"}`
+- **edit:** `{"success": true, "id": "US-001", "changes": ["title", "priority"]}`
+
+Use `get --id <US-XXX>` to retrieve the full story if needed after mutation.
+
+## Query Selection Guide
+
+| Need | Command |
+|------|---------|
+| Progress overview (counts only) | `stats` |
+| Story list (IDs + titles + status) | `list --format summary` |
+| Story list (specific fields) | `list --fields id,title,acceptance_criteria` |
+| Story list (full detail minus audit) | `list --format json` |
+| Single story (all fields + history) | `get --id US-XXX` |
 
 ## Status Transitions by Phase
 
