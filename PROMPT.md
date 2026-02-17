@@ -1,17 +1,13 @@
 ## Purpose
 
-Plan the construction of a skill that will be used to this claude plugin that will replace the backlog documentation and consume to better organizer the proccess of consumption by the agents
+Plan the construction of a skill that orchestrate and manages the workflow described by `README_AGENCY.md` and `docs\agency\phase-walkthrough.md` through the spawn of agents and sub-agents using de tools `TeamCreate` and `Task` using the skills `/pm`, `/po`, `/tl`, `/dev` and `/qa`
 
 ## Instructions
 
-`docs\templates\BACKLOG.md` management must be replaced by a skill that manages a table or a json with scripts and predefined roules and communication interface.
+1. Read `README_AGENCY.md` and its dependencies
+2. Plan a skill called `/orchestrator` that manages and execute de flow described by the `README_AGENCY.md` through `TeamCreate` and `Task` to plan and implement the objective discribed by a prompt passed as argument to the slash command
 
-- Only `/po` and `/pm` can `CreateNewUs`
-- Only `/po`, `/pm` and `/tl` can edit description of a Us
-- `/dev` and `/qa` can only change Backlog status
-- All project backlog data shoud be in `/agent_docs/backlog` folder of the project
-- Backlog.md shoud be a resume and have a reference to how to use the system
+## Important
 
-The system must be based on the orchestration of the elements using `TeamCreate` and `Task` tools
-
-Reforce a agencia descrita em `README_AGENCY.md`
+- The orchestrator should bring questions from the team to the user to be answered before it continues the work
+- The `/orchestrator` should enforce the application of the Agency to the flow and delegate the job to be made by `/pm`, `/po`, `/tl`, `/dev` and `/qa` skills as defined in the flow
