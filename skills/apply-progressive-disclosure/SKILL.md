@@ -30,6 +30,14 @@ Read the argument after `/apply-progressive-disclosure`. Route to the matching m
 
 If no argument: run `analyze` by default.
 
+## Agency CLI Integration
+
+This skill uses `agency_cli.py` for all deterministic token analysis operations:
+
+```bash
+CLI=$(python -c "import glob; print(glob.glob('**/shared/scripts/agency_cli.py', recursive=True)[0])")
+```
+
 ## Target Detection
 
 Before executing any mode, determine the target type:
@@ -46,135 +54,55 @@ Skill mode uses skill-specific thresholds and targets from `references/fragmenta
 
 Scan the target and produce a token budget report.
 
-**Workflow (Project mode):**
+**Workflow (both modes):**
 
-1. Locate the project root (directory containing `CLAUDE.md`). If the working directory has no `CLAUDE.md`, ask the user for the project path.
+Use the CLI for the entire analysis — it handles project vs skill mode automatically:
 
-2. Scan for all Claude Code configuration files:
-   - `CLAUDE.md` (root and subdirectories)
-   - `CLAUDE.local.md`
-   - `.claude/settings.json`
-   - `.claude/commands/*.md`
-   - `.claude/skills/*/SKILL.md`
-   - Any `agent_docs/` directory
+```bash
+# Run full token analysis
+python $CLI tokens analyze --root <target-path>
+# Returns JSON: files, total_tokens, startup_tokens, fragmentation_candidates, etc.
 
-3. For each file, estimate tokens: `ceil(character_count / 4)`.
+# Find duplicate content
+python $CLI tokens deduplicate --root <target-path>
+# Returns: duplicates with locations and token counts
 
-4. Identify startup cost: files loaded on every session (CLAUDE.md files in the path hierarchy).
+# Generate the analysis report
+python $CLI report context-analysis --input <analysis-json> --output <target-path>/docs/CONTEXT_ANALYSIS.md
+```
 
-5. Detect fragmentation candidates using thresholds from `references/fragmentation-rules.md`:
-   - Files >500 tokens: candidate
-   - Files >1000 tokens: recommended
-   - Files >2000 tokens: mandatory
-   - Sections >300 tokens within a file: candidate for extraction
-   - Procedural blocks >10 steps: convert to skill
-   - Code blocks >50 lines: extract to script
-
-6. Detect duplicate content across files (repeated paragraphs or instructions).
-
-7. Produce the analysis report following the format in `references/report-format.md`. Write to `docs/CONTEXT_ANALYSIS.md` at the project root.
-
-8. Present a summary to the user with the top 3 recommendations.
-
-**Workflow (Skill mode):**
-
-1. Confirm the target directory contains `SKILL.md`.
-
-2. Scan all skill files:
-   - `SKILL.md` (measure body separately from frontmatter)
-   - `references/*.md`
-   - `scripts/*`
-   - `assets/*`
-
-3. For each file, estimate tokens: `ceil(character_count / 4)`. For `SKILL.md`, also count body lines (excluding frontmatter delimiters and YAML content).
-
-4. Identify trigger cost: tokens loaded when the skill activates = `SKILL.md` body tokens.
-
-5. Detect fragmentation candidates using skill-specific thresholds from `references/fragmentation-rules.md`:
-   - SKILL.md body > 500 lines: recommended to extract sections to `references/`
-   - SKILL.md body > 2000 tokens: mandatory extraction
-   - Reference file > 10,000 tokens: recommended split
-   - Code block in SKILL.md > 30 lines: candidate for `scripts/`
-   - Code block in SKILL.md > 50 lines: mandatory extraction to `scripts/`
-
-6. Detect duplicate content between SKILL.md and reference files.
-
-7. Write analysis report to `docs/CONTEXT_ANALYSIS.md` inside the skill directory.
-
-8. Present a summary to the user with the top 3 recommendations.
+Present a summary to the user with the top 3 recommendations from the analysis output.
 
 ## Mode: Optimize
 
 Apply progressive disclosure transformations. Read `references/fragmentation-rules.md` for thresholds and rules.
 
-**Workflow:**
+**Workflow (Project mode):**
 
-1. If `docs/CONTEXT_ANALYSIS.md` exists, read it. Otherwise, run the Analyze workflow first.
+Use CLI for deterministic fragmentation:
 
-2. If `--dry-run` flag is present: describe all changes that would be made without writing any files. Present the plan and ask for confirmation before proceeding.
+```bash
+# Fragment CLAUDE.md (Priority 1)
+python $CLI tokens fragment --file <root>/CLAUDE.md --threshold 300 --output-dir <root>/agent_docs/ [--dry-run]
 
-3. Apply transformations in priority order:
+# Fragment a SKILL.md (Priority 1, skill mode)
+python $CLI tokens fragment-skill --file <path>/SKILL.md --threshold 300 --output-dir <path>/references/ [--dry-run]
+```
 
-   **Priority 1 — Fragment CLAUDE.md:**
-   - Extract sections exceeding 300 tokens to `agent_docs/{section-slug}.md`
-   - Keep in CLAUDE.md: project name, stack (1-2 lines), top 5 commands, documentation index table
-   - Target: CLAUDE.md < 500 tokens, < 60 lines
-   - Create `agent_docs/` directory if needed
+After CLI handles the mechanical extraction, apply these judgment-based steps manually:
 
-   **Priority 2 — Extract code to scripts:**
-   - Move code blocks >50 lines to `scripts/` or `.claude/scripts/`
-   - Replace with one-line reference: "Run `scripts/{name}.{ext}`"
+1. **Priority 2 — Extract code to scripts:** Review CLI output for code blocks >50 lines and move to `scripts/`.
+2. **Priority 3 — Convert procedures to skills:** Identify step-by-step instructions (>10 steps) and create skill files.
+3. **Priority 4 — Build documentation index:** Add index table to CLAUDE.md linking extracted documents.
+4. **Priority 5 — Deduplicate:** Use `python $CLI tokens deduplicate --root <path>` to find duplicates, then resolve manually.
 
-   **Priority 3 — Convert procedures to skills:**
-   - Identify step-by-step instructions (>10 steps) that are self-contained workflows
-   - Create skill files in `.claude/commands/` with frontmatter
-   - Replace in source with: "Use `/command-name` for this workflow"
+After applying changes:
+```bash
+# Generate before/after comparison report
+python $CLI tokens report --before <before-analysis.json> --after <after-analysis.json> --output <root>/docs/CONTEXT_REPORT.md
+```
 
-   **Priority 4 — Build documentation index:**
-   - Add an index table to CLAUDE.md linking all extracted documents
-   - Each row: document path, one-line description, when to load it
-   - Add instruction: "Load only docs relevant to the current task."
-
-   **Priority 5 — Deduplicate:**
-   - Keep authoritative version in most specific location
-   - Replace duplicates with reference to authoritative source
-
-4. After applying changes, produce a migration report following `references/report-format.md`. Write to `docs/CONTEXT_MIGRATION.md`.
-
-5. Present token savings summary to the user.
-
-**Workflow (Skill mode — Optimize):**
-
-1. If `docs/CONTEXT_ANALYSIS.md` exists inside the skill directory, read it. Otherwise, run Analyze (Skill mode) first.
-
-2. If `--dry-run`: describe changes without writing. Ask confirmation before proceeding.
-
-3. Apply transformations in priority order:
-
-   **Priority 1 — Fragment SKILL.md body:**
-   - Extract sections exceeding 300 tokens to `references/{section-slug}.md`
-   - Keep in SKILL.md: frontmatter, workflow overview, argument declarations, references index
-   - Target: SKILL.md body < 500 lines
-
-   **Priority 2 — Extract code blocks to scripts:**
-   - Move code blocks > 50 lines to `scripts/{name}.ext`
-   - Replace with: "Run `scripts/{name}.ext`"
-   - Code blocks > 30 lines: evaluate case-by-case (extract if reusable)
-
-   **Priority 3 — Split large reference files:**
-   - Reference files > 10,000 tokens: split by logical section into multiple files
-   - Add a table of contents to files > 100 lines
-
-   **Priority 4 — Add references index to SKILL.md:**
-   - If not present, add an index listing all reference files with "when to load" triggers
-
-   **Priority 5 — Deduplicate:**
-   - Remove content duplicated between SKILL.md and reference files
-   - Keep detailed version in references, keep summary in SKILL.md
-
-4. Write migration report to `docs/CONTEXT_MIGRATION.md` inside the skill directory.
-
-5. Present token savings summary.
+Present token savings summary to the user.
 
 **Constraints (both modes):**
 - Never delete original content — only move it

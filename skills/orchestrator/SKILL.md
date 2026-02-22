@@ -31,63 +31,105 @@ You are the **Orchestrator**, the automated conductor of the Software Developmen
 - ALWAYS parallelize the spawning of non-blocking assist agents to save time.
 - ALWAYS prefer `TeamCreate` + shared task list over standalone `Task` calls.
 
-## Variables
+## Agency CLI
 
-- **OBJECTIVE**: The argument passed after `/orchestrator`. This is the project goal.
-- **PROJECT_ROOT**: Resolved by finding `CLAUDE.md` at the `[businessUnit]/[project]/` level.
-- **TEAM_NAME**: `agency-{project}` where `{project}` is derived from the project root directory name.
-- **SCRIPT_PATH**: Resolved once via Glob `**/backlog/scripts/backlog_manager.py`. Pass to all agent prompts.
-- **BACKLOG_PATH**: `{PROJECT_ROOT}/agent_docs/backlog/backlog.json`. Pass to all agent prompts.
+The `agency_cli.py` script handles all deterministic operations. **Use it for every operation that doesn't require LLM judgment.**
+
+```bash
+# Resolve CLI path once
+CLI=$(python -c "import glob; print(glob.glob('**/shared/scripts/agency_cli.py', recursive=True)[0])")
+```
 
 ## Initialization
 
-1. Parse the OBJECTIVE from the argument.
-2. Resolve PROJECT_ROOT by searching for `CLAUDE.md`.
+Replace the old manual path resolution with a single CLI call:
+
+```bash
+# 1. Resolve all paths deterministically
+INIT=$(python $CLI init --scan-root <workspace> --create-dirs)
+# Returns: project_root, script_path, backlog_path, team_name, claude_md
+
+# 2. Extract variables from JSON
+PROJECT_ROOT=$(echo $INIT | python -c "import sys,json; print(json.load(sys.stdin)['project_root'])")
+SCRIPT_PATH=$(echo $INIT | python -c "import sys,json; print(json.load(sys.stdin)['script_path'])")
+BACKLOG_PATH=$(echo $INIT | python -c "import sys,json; print(json.load(sys.stdin)['backlog_path'])")
+TEAM_NAME=$(echo $INIT | python -c "import sys,json; print(json.load(sys.stdin)['team_name'])")
+```
+
+Then:
 3. Read `CLAUDE.md` for project context (stack, conventions, domain).
-4. Resolve SCRIPT_PATH via Glob `**/backlog/scripts/backlog_manager.py` (once, reuse for all agents).
-5. Set BACKLOG_PATH = `{PROJECT_ROOT}/agent_docs/backlog/backlog.json`.
-6. Create the team: `TeamCreate` with name `agency-{project}`.
-7. Inform the user: "Starting SDLC for: {OBJECTIVE}. Project root: {PROJECT_ROOT}."
-8. Read `references/phase-matrix.md` for agent/model assignments and gate conditions.
-9. Read `references/phase-details.md` for detailed phase execution instructions.
+4. Create the team: `TeamCreate` with name `$TEAM_NAME`.
+5. Inform the user: "Starting SDLC for: {OBJECTIVE}. Project root: {PROJECT_ROOT}."
+6. Read `references/phase-matrix.md` and `references/phase-details.md`.
 
-## Spawning Teammates (Team Pattern)
+## Spawning Teammates (CLI-Assisted)
 
-All agents MUST be spawned as teammates within the team:
+Use `agency_cli agent` for all agent configuration:
 
+```bash
+# Get full spawn config for an agent
+python $CLI agent prompt --role dev --phase implement \
+  --project-root $PROJECT_ROOT --script-path $SCRIPT_PATH \
+  --backlog-path $BACKLOG_PATH --objective "$OBJECTIVE"
+# Returns: {prompt, model, name}
+
+# Get execution order (waves) for a phase
+python $CLI agent order --phase design
+# Returns: [{wave: 1, agents: [{role, name, model}]}, {wave: 2, ...}]
+
+# List all agents for a phase
+python $CLI agent list --phase validate
+```
+
+Then spawn each agent via `Task`:
 ```
 Task(
   subagent_type: "general-purpose",
-  team_name: "agency-{project}",
-  name: "{role}-{phase}",
-  model: "{opus|sonnet|haiku}",  // per phase-matrix.md
-  prompt: "...",
+  team_name: "$TEAM_NAME",
+  name: <name from CLI>,
+  model: <model from CLI>,
+  prompt: <prompt from CLI>,
   description: "...",
   mode: "bypassPermissions"
 )
 ```
 
-**Naming:** Leads = `{role}-{phase}`, Assists = `{role}-{phase}-assist`.
-
-**Model selection:** `opus` for judgment, `sonnet` for generation, `haiku` for lightweight assists.
-
-## Agent Prompt Template
-
-When spawning agents, **always include resolved paths** to avoid redundant Glob calls:
-
-> You are the {Role}. Invoke the `/{role} {phase}` skill. The project objective is: {OBJECTIVE}. The project root is: {PROJECT_ROOT}. The backlog script is at: {SCRIPT_PATH}. The backlog path is: {BACKLOG_PATH}. Read CLAUDE.md for context. If you need clarification, list all questions prefixed with `[QUESTIONS]`. Do NOT use AskUserQuestion — return questions to me. When done, mark your task as completed via TaskUpdate.
-
-For assist agents: replace with "[NOTES]" prefix and review focus.
-
 ## Phase Lifecycle
 
 Each phase is self-contained: spawn → work → shutdown. See `references/phase-details.md` for step-by-step instructions per phase.
 
-1. Create tasks for this phase via `TaskCreate` (owner = agent name from matrix)
-2. Spawn lead agents first, assist agents in parallel
+1. Get phase agents and order: `python $CLI agent order --phase <phase>`
+2. Spawn wave 1 agents, then wave 2 after wave 1 completes, etc.
 3. Monitor via `TaskList` and handle `[QUESTIONS]` via `AskUserQuestion`
 4. When all phase tasks complete, shutdown all phase agents via `SendMessage` (type: `shutdown_request`)
 5. Proceed to next phase
+
+## Gate Evaluation (CLI-Assisted)
+
+Use `agency_cli gate` to parse verdicts deterministically — no LLM reasoning needed:
+
+```bash
+# Parse verdict from agent output file
+python $CLI gate parse --file $PROJECT_ROOT/docs/VALIDATION.md --phase validate
+# Returns: {found, pm, tl, combined, combined_verdict}
+
+python $CLI gate parse --file $PROJECT_ROOT/docs/REVIEW.md --phase review
+# Returns: {found, verdict, blocking_issues_estimate}
+
+python $CLI gate parse --file $PROJECT_ROOT/docs/TEST_REPORT.md --phase test
+# Returns: {found, verdict, tests_passed, tests_failed}
+```
+
+Then determine next action:
+```bash
+# Get routing decision
+python $CLI phase next --current validate --verdict "APPROVED,APPROVED"
+# Returns: {next_phase, action, reason}
+
+# Check iteration limits
+python $CLI gate check --phase validate --iteration 2 --max 3
+# Returns: {should_escalate, action, message}
+```
 
 ## Phase Summary
 
@@ -101,18 +143,30 @@ Each phase is self-contained: spawn → work → shutdown. See `references/phase
 | 6 | Test | QA | Yes | `references/phase-details.md` §Test |
 | 7 | Document | PM + TL | No | `references/phase-details.md` §Document |
 
+## Progress Reporting (CLI-Assisted)
+
+```bash
+# Generate phase summary line
+python $CLI report phase-summary --phase validate \
+  --artifacts '["docs/VALIDATION.md"]' \
+  --gate '{"verdict": "APPROVED", "action": "proceed"}'
+```
+
+## Backlog Transitions (CLI-Assisted)
+
+When transitioning stories between phases, use batch operations:
+```bash
+# Transition all stories from one phase status to next (and render once)
+python $CLI backlog phase-transition --phase implement --caller dev \
+  --backlog-path $BACKLOG_PATH --script-path $SCRIPT_PATH
+```
+
 ## Question Handling Protocol
 
 Agents return questions prefixed with `[QUESTIONS]`. When detected:
 1. Parse all questions from the output.
 2. Present them via `AskUserQuestion`, attributing to source agent.
 3. Relay answers via `SendMessage` to the teammate.
-
-## Progress Reporting
-
-Between phases: `--- Phase {N}: {Name} --- Status: COMPLETE | Artifacts: {list} | Next: Phase {N+1}`
-
-For gates: add `Gate result: {verdict} | Action: {proceeding / looping}`
 
 ## Cleanup
 

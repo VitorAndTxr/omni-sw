@@ -15,6 +15,26 @@ context: fork
 
 Read-only codebase analysis skill. Discover every project under a scan root, extract stack/database/API/integration metadata, and produce structured documentation with Mermaid diagrams.
 
+## Agency CLI Integration
+
+This skill uses `agency_cli.py` for deterministic discovery, config extraction, and diagram generation:
+
+```bash
+CLI=$(python -c "import glob; print(glob.glob('**/shared/scripts/agency_cli.py', recursive=True)[0])")
+
+# Discover repos (replaces manual Glob scanning)
+python $CLI scan discover --root <scan-root>
+
+# Full scan of a single repo (stack, endpoints, DB, env vars)
+python $CLI scan repo --root <repo-path>
+
+# Generate diagrams from scan results
+python $CLI diagram er --input scan-result.json --output docs/database/diagrams.md
+python $CLI diagram endpoints --input scan-result.json --output docs/endpoints.md
+python $CLI diagram service-map --input scan-result.json --output docs/service-map.md
+python $CLI diagram workflow --input scan-result.json --output docs/workflows.md
+```
+
 ## Variables
 
 - **scan-root**: First argument if provided, otherwise current working directory.
@@ -34,37 +54,28 @@ Scan and document the codebase in this order:
 
 1. **Read agency context** -- Read `~/.claude/README_AGENCY.md` (if it exists) to understand agency roles, phases, and artifact conventions. Read any existing `CLAUDE.md` at the scan root for project conventions.
 
-2. **Discover repositories** -- Recursively scan `<scan-root>` for project root markers:
-   - `.git` directories
-   - `.sln` files
-   - `package.json` (with `node_modules` excluded)
-   - `docker-compose.yml` / `docker-compose.yaml`
-   - `*.csproj`, `*.fsproj`
-   - `pyproject.toml`, `setup.py`, `requirements.txt`
-   - `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle`
-   Build a flat list: `{name, path, root-marker-type}`.
+2. **Discover and analyze repositories** -- Use the CLI for all deterministic discovery and extraction:
+   ```bash
+   # Step 2-3: Discover all repos and extract metadata (stack, DB, endpoints, env vars)
+   python $CLI scan discover --root <scan-root>
+   # Save output to scan-result.json for diagram generation
 
-3. **Analyze each project** -- For every discovered project:
-   - **Stack**: runtime (.NET, Node, Python, Go, Rust, Java, etc.), framework, language version.
-   - **Entry points**: `Program.cs`, `Startup.cs`, `main.ts`, `index.js`, `main.py`, `main.go`, `docker-compose.yml` services.
-   - **Database configs**: connection strings in `appsettings*.json`, `.env`, `docker-compose.yml`; ORM configs (DbContext, Prisma schema, Sequelize models, SQLAlchemy models, migration files).
-   - **API surface**: controllers, route definitions, endpoint registrations, minimal API mappings, Express/Fastify routes, OpenAPI/Swagger specs.
-   - **External integrations**: HTTP client configs (base URLs, named clients), message broker connections (RabbitMQ, Kafka, Azure Service Bus, MassTransit), queue consumers/producers, gRPC service definitions.
-   - **Environment variables**: required env vars from `.env.example`, `appsettings*.json`, `docker-compose.yml`, `launchSettings.json`.
+   # For deeper analysis of individual repos:
+   python $CLI scan repo --root <repo-path>
+   ```
 
-4. **Map cross-project relationships** -- Identify:
-   - Shared databases (same connection string or DB name across projects).
-   - Inter-service calls (HTTP base URLs pointing to sibling services).
-   - Shared packages published from within the repo (NuGet, npm).
-   - Docker compose service dependencies.
+3. **Map cross-project relationships** -- Use LLM judgment for semantic cross-referencing that requires understanding of the codebase context (shared DBs by name matching, inter-service call patterns, shared packages). The CLI provides the raw data; the LLM connects the dots.
 
-5. **Write `docs/database/diagrams.md`** -- See `references/database-template.md` for structure. One Mermaid `erDiagram` block per database/schema. Derive entities from EF Core DbContext/entities, Prisma schemas, migration files, or SQL scripts.
+4. **Generate diagrams** -- Use the CLI for deterministic diagram scaffolding, then enrich with LLM analysis:
+   ```bash
+   python $CLI diagram er --input scan-result.json --output docs/database/diagrams.md
+   python $CLI diagram endpoints --input scan-result.json --output docs/endpoints.md
+   python $CLI diagram service-map --input scan-result.json --output docs/service-map.md
+   python $CLI diagram workflow --input scan-result.json --output docs/workflows.md
+   ```
+   After generation, review and enrich: add entity details from source code analysis, complete ER diagrams with fields/relationships, add workflow details from business logic inspection.
 
-6. **Write `docs/endpoints.md`** -- See `references/endpoints-template.md` for structure. Full API catalog per project.
-
-7. **Write `docs/workflows.md`** -- See `references/workflows-template.md` for structure. Use `sequenceDiagram` for cross-service request flows, `flowchart` for business logic branches, `stateDiagram-v2` for entity lifecycle transitions.
-
-8. **Write supplementary diagrams in `docs/diagrams/`** -- One file per topic. Use `classDiagram` for domain models, `sequenceDiagram` for multi-step interactions, `flowchart` for conditional business rules. Skip if `workflows.md` already covers everything.
+5. **Write supplementary diagrams in `docs/diagrams/`** -- One file per topic. Use `classDiagram` for domain models, `sequenceDiagram` for multi-step interactions, `flowchart` for conditional business rules. Skip if `workflows.md` already covers everything.
 
 9. **Write `CLAUDE.md`** -- See `references/claude-md-template.md` for structure. Agent memory file at the scan root indexing the entire landscape.
 
