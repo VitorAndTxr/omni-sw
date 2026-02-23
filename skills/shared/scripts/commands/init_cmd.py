@@ -1,5 +1,5 @@
 """
-agency_cli init — Resolve project paths and initialize environment.
+agency_cli init -- Resolve project paths and initialize environment.
 
 Usage:
     agency_cli init --scan-root <path>
@@ -50,7 +50,7 @@ def handle_init(args: list[str]) -> dict:
     parser.add_argument("--create-dirs", action="store_true", help="Create agent_docs/backlog/ if missing")
     opts = parser.parse_args(args)
 
-    scan_root = os.path.abspath(opts.scan_root)
+    scan_root = os.path.normpath(os.path.abspath(opts.scan_root))
     if not os.path.isdir(scan_root):
         raise FileNotFoundError(f"Scan root not found: {scan_root}")
 

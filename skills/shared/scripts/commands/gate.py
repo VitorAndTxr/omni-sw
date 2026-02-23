@@ -1,5 +1,5 @@
 """
-agency_cli gate — Parse gate verdicts from agent output.
+agency_cli gate -- Parse gate verdicts from agent output.
 
 Usage:
     agency_cli gate parse --file <path> --phase <validate|review|test>
@@ -10,6 +10,20 @@ Usage:
 import argparse
 import re
 import json
+import sys
+
+
+def _resolve_text_input(opts) -> str:
+    """Resolve text from --file, --text, or --text-stdin."""
+    if getattr(opts, 'text_stdin', False):
+        return sys.stdin.read().strip()
+    elif opts.file:
+        with open(opts.file, 'r', encoding='utf-8') as f:
+            return f.read()
+    elif opts.text:
+        return opts.text
+    else:
+        raise ValueError("Either --file, --text, or --text-stdin is required")
 
 
 def parse_verdict_from_text(text: str, phase: str) -> dict:
@@ -91,27 +105,76 @@ def check_iteration(phase: str, iteration: int, max_iterations: int) -> dict:
     }
 
 
+def extract_questions(text: str) -> dict:
+    """Extract [QUESTIONS] blocks from agent output."""
+    questions = []
+
+    # Pattern 1: [QUESTIONS] block followed by numbered/bulleted items
+    q_blocks = re.findall(
+        r'\[QUESTIONS\]\s*(.*?)(?=\[(?:VERDICT|GATE|NOTES)\]|\Z)',
+        text, re.DOTALL | re.IGNORECASE
+    )
+    for block in q_blocks:
+        # Extract individual questions (numbered, bulleted, or line-by-line)
+        for line in block.strip().splitlines():
+            line = line.strip()
+            # Remove leading markers: "1.", "- ", "* ", "Q:", etc.
+            cleaned = re.sub(r'^(?:\d+[.)]\s*|[-*]\s*|Q\d*:\s*)', '', line).strip()
+            # Skip lines that are verdict/gate markers
+            if re.match(r'^\[(?:VERDICT|GATE|NOTES|QUESTION)', cleaned, re.IGNORECASE):
+                continue
+            if cleaned and len(cleaned) > 5 and cleaned.endswith('?'):
+                questions.append(cleaned)
+            elif cleaned and len(cleaned) > 10:
+                # Accept non-question sentences that are substantial
+                questions.append(cleaned)
+
+    # Pattern 2: Inline [QUESTION: ...] markers
+    inline = re.findall(r'\[QUESTION:\s*([^\]]+)\]', text, re.IGNORECASE)
+    questions.extend(q.strip() for q in inline)
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique = []
+    for q in questions:
+        if q.lower() not in seen:
+            seen.add(q.lower())
+            unique.append(q)
+
+    return {
+        "found": len(unique) > 0,
+        "count": len(unique),
+        "questions": unique,
+    }
+
+
 def handle_gate(args: list[str]) -> dict:
     if not args:
-        raise ValueError("Subcommand required: parse, check")
+        raise ValueError("Subcommand required: parse, check, extract-questions")
 
     subcmd = args[0]
 
-    if subcmd == "parse":
+    if subcmd == "extract-questions":
+        parser = argparse.ArgumentParser(prog="agency_cli gate extract-questions")
+        parser.add_argument("--file", help="Path to file containing agent output")
+        parser.add_argument("--text", help="Direct text to parse")
+        parser.add_argument("--text-stdin", action="store_true",
+                            help="Read text from stdin (avoids shell escaping issues)")
+        opts = parser.parse_args(args[1:])
+
+        text = _resolve_text_input(opts)
+        return extract_questions(text)
+
+    elif subcmd == "parse":
         parser = argparse.ArgumentParser(prog="agency_cli gate parse")
         parser.add_argument("--file", help="Path to file containing agent output")
         parser.add_argument("--text", help="Direct text to parse")
+        parser.add_argument("--text-stdin", action="store_true",
+                            help="Read text from stdin (avoids shell escaping issues)")
         parser.add_argument("--phase", required=True, choices=["validate", "review", "test"])
         opts = parser.parse_args(args[1:])
 
-        if opts.file:
-            with open(opts.file, 'r', encoding='utf-8') as f:
-                text = f.read()
-        elif opts.text:
-            text = opts.text
-        else:
-            raise ValueError("Either --file or --text is required")
-
+        text = _resolve_text_input(opts)
         return parse_verdict_from_text(text, opts.phase)
 
     elif subcmd == "check":

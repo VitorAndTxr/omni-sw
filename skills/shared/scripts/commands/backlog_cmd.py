@@ -1,5 +1,5 @@
 """
-agency_cli backlog — Batch backlog operations and transition validation.
+agency_cli backlog -- Batch backlog operations and transition validation.
 
 Usage:
     agency_cli backlog validate-transition --from <status> --to <status>
@@ -10,6 +10,7 @@ Usage:
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 
@@ -173,13 +174,163 @@ def batch_create(backlog_path: str, script_path: str, caller: str, input_file: s
     }
 
 
+# Query profiles: predefined field/format combos for common agent needs
+QUERY_PROFILES = {
+    "minimal":  {"fields": "id,title,status", "format": "summary"},
+    "full":     {"fields": None, "format": "json"},
+    "audit":    {"fields": None, "format": "json"},  # uses 'get' per story
+    "ids":      {"fields": "id", "format": "summary"},
+    "ac":       {"fields": "id,title,acceptance_criteria", "format": "json"},
+    "progress": {"fields": "id,title,status,priority", "format": "summary"},
+}
+
+
+def query_by_profile(backlog_path: str, script_path: str, phase: str,
+                     profile: str, extra_status: str = None) -> dict:
+    """Run a predefined backlog query for a phase."""
+    phase = phase.lower()
+    if profile not in QUERY_PROFILES:
+        raise ValueError(f"Unknown profile: {profile}. Valid: {', '.join(QUERY_PROFILES)}")
+
+    # Determine status filter from phase
+    if extra_status:
+        status = extra_status
+    elif phase in PHASE_STATUS_MAP:
+        mapping = PHASE_STATUS_MAP[phase]
+        status = mapping["from"] if mapping["from"] else None
+    else:
+        status = None
+
+    prof = QUERY_PROFILES[profile]
+    cmd = ["list", backlog_path]
+    if status:
+        cmd.extend(["--status", status])
+    if prof["format"]:
+        cmd.extend(["--format", prof["format"]])
+    if prof["fields"]:
+        cmd.extend(["--fields", prof["fields"]])
+
+    return run_backlog_cmd(script_path, backlog_path, cmd)
+
+
+def resolve_dependencies(backlog_path: str, script_path: str,
+                         story_id: str = None) -> dict:
+    """Resolve story dependencies via topological sort."""
+    # Get all stories with dependencies
+    result = run_backlog_cmd(script_path, backlog_path,
+        ["list", "--fields", "id,title,dependencies,status", "--format", "json"])
+
+    stories = result if isinstance(result, list) else result.get("stories", [])
+    if not stories:
+        return {"ordered": [], "message": "No stories found"}
+
+    # Build dependency graph
+    story_map = {}
+    deps_graph = {}
+    for s in stories:
+        sid = s.get("id", "")
+        story_map[sid] = s
+        raw_deps = s.get("dependencies", "") or ""
+        dep_list = [d.strip() for d in raw_deps.split(",") if d.strip()]
+        deps_graph[sid] = dep_list
+
+    # If specific story requested, find its full dependency chain
+    if story_id:
+        if story_id not in story_map:
+            raise ValueError(f"Story {story_id} not found")
+        # BFS to find all transitive dependencies
+        chain = []
+        visited = set()
+        queue = [story_id]
+        while queue:
+            current = queue.pop(0)
+            if current in visited:
+                continue
+            visited.add(current)
+            chain.append(current)
+            for dep in deps_graph.get(current, []):
+                if dep not in visited:
+                    queue.append(dep)
+        # Reverse so dependencies come first
+        chain.reverse()
+    else:
+        chain = list(deps_graph.keys())
+
+    # Topological sort (Kahn's algorithm)
+    in_degree = {sid: 0 for sid in chain}
+    for sid in chain:
+        for dep in deps_graph.get(sid, []):
+            if dep in in_degree:
+                in_degree[sid] = in_degree.get(sid, 0) + 1
+
+    queue = [sid for sid, deg in in_degree.items() if deg == 0]
+    ordered = []
+    while queue:
+        queue.sort()  # Deterministic order
+        current = queue.pop(0)
+        ordered.append(current)
+        # Find stories that depend on current
+        for sid in chain:
+            if current in deps_graph.get(sid, []):
+                in_degree[sid] -= 1
+                if in_degree[sid] == 0:
+                    queue.append(sid)
+
+    # Check for cycles
+    has_cycle = len(ordered) != len(chain)
+
+    result_stories = []
+    for sid in ordered:
+        if sid in story_map:
+            result_stories.append({
+                "id": sid,
+                "title": story_map[sid].get("title", ""),
+                "status": story_map[sid].get("status", ""),
+                "dependencies": deps_graph.get(sid, []),
+            })
+
+    return {
+        "ordered": result_stories,
+        "count": len(result_stories),
+        "has_cycle": has_cycle,
+        "cycle_warning": "Circular dependency detected -- some stories could not be ordered" if has_cycle else None,
+    }
+
+
 def handle_backlog(args: list[str]) -> dict:
     if not args:
-        raise ValueError("Subcommand required: validate-transition, phase-transition, batch-create, expected-status")
+        raise ValueError("Subcommand required: validate-transition, phase-transition, batch-create, expected-status, query, resolve-dependencies")
 
     subcmd = args[0]
 
-    if subcmd == "validate-transition":
+    if subcmd == "query-profile":
+        # Lightweight alias: returns profile config without running backlog_manager
+        parser = argparse.ArgumentParser(prog="agency_cli backlog query-profile")
+        parser.add_argument("--profile", required=True)
+        opts = parser.parse_args(args[1:])
+        if opts.profile not in QUERY_PROFILES:
+            raise ValueError(f"Unknown profile: {opts.profile}. Valid: {', '.join(QUERY_PROFILES)}")
+        return {"profile": opts.profile, **QUERY_PROFILES[opts.profile]}
+
+    elif subcmd == "query":
+        parser = argparse.ArgumentParser(prog="agency_cli backlog query")
+        parser.add_argument("--phase", required=True)
+        parser.add_argument("--profile", required=True, choices=list(QUERY_PROFILES.keys()))
+        parser.add_argument("--backlog-path", required=True)
+        parser.add_argument("--script-path", required=True)
+        parser.add_argument("--status", default=None, help="Override status filter")
+        opts = parser.parse_args(args[1:])
+        return query_by_profile(opts.backlog_path, opts.script_path, opts.phase, opts.profile, opts.status)
+
+    elif subcmd == "resolve-dependencies":
+        parser = argparse.ArgumentParser(prog="agency_cli backlog resolve-dependencies")
+        parser.add_argument("--backlog-path", required=True)
+        parser.add_argument("--script-path", required=True)
+        parser.add_argument("--id", default=None, help="Specific story ID (optional)")
+        opts = parser.parse_args(args[1:])
+        return resolve_dependencies(opts.backlog_path, opts.script_path, opts.id)
+
+    elif subcmd == "validate-transition":
         parser = argparse.ArgumentParser(prog="agency_cli backlog validate-transition")
         parser.add_argument("--from", dest="from_status", required=True)
         parser.add_argument("--to", dest="to_status", required=True)

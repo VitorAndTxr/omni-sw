@@ -6,18 +6,18 @@ Shared setup for all agency agents (PM, PO, TL, Dev, QA). Each agent's SKILL.md 
 
 The `agency_cli.py` script handles all deterministic operations (path resolution, model lookup, phase routing, gate parsing, batch transitions, token analysis). Resolve its path once per session:
 
-```bash
-CLI=$(python -c "import glob; print(glob.glob('**/shared/scripts/agency_cli.py', recursive=True)[0])")
+```
+Glob pattern: "**/shared/scripts/agency_cli.py"
 ```
 
-If the orchestrator provided `CLI_PATH` in your spawn prompt, use it directly.
+Store the result as `{CLI}`. If the orchestrator provided `CLI_PATH` in your spawn prompt, use it directly.
 
 ## Project Root Resolution
 
 If the orchestrator provided `PROJECT_ROOT`, `SCRIPT_PATH`, and `BACKLOG_PATH` in your spawn prompt, use those directly. Otherwise, resolve once via CLI:
 
 ```bash
-python $CLI init --scan-root <workspace>
+python {CLI} init --scan-root {workspace}
 # Returns JSON: project_root, script_path, backlog_path, team_name, claude_md
 ```
 
@@ -31,12 +31,12 @@ Pass `--caller <agent>` on every command. The script rejects unauthorized operat
 
 For batch transitions (e.g., transitioning all stories for a phase):
 ```bash
-python $CLI backlog phase-transition --phase <phase> --caller <role> --backlog-path $BACKLOG_PATH --script-path $SCRIPT_PATH
+python {CLI} backlog phase-transition --phase {phase} --caller {role} --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH}
 ```
 
 To validate a transition before executing:
 ```bash
-python $CLI backlog validate-transition --from "Ready" --to "In Design"
+python {CLI} backlog validate-transition --from "Ready" --to "In Design"
 ```
 
 ### Permission Matrix

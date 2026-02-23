@@ -1,5 +1,5 @@
 """
-agency_cli report — Markdown report generation from structured data.
+agency_cli report -- Markdown report generation from structured data.
 
 Usage:
     agency_cli report context-analysis --input <analysis-json> --output <path>
@@ -56,11 +56,11 @@ def generate_context_analysis_report(analysis: dict, output_path: str) -> dict:
     rec_num = 1
     for c in candidates[:3]:
         if c["severity"] == "mandatory":
-            lines.append(f"{rec_num}. **MANDATORY** — Fragment `{c['file']}` ({c['tokens']:,} tokens). Extract sections >300 tokens to separate files.")
+            lines.append(f"{rec_num}. **MANDATORY** -- Fragment `{c['file']}` ({c['tokens']:,} tokens). Extract sections >300 tokens to separate files.")
         elif c["severity"] == "recommended":
-            lines.append(f"{rec_num}. **RECOMMENDED** — Fragment `{c['file']}` ({c['tokens']:,} tokens). Consider extracting large sections.")
+            lines.append(f"{rec_num}. **RECOMMENDED** -- Fragment `{c['file']}` ({c['tokens']:,} tokens). Consider extracting large sections.")
         else:
-            lines.append(f"{rec_num}. **CANDIDATE** — Review `{c['file']}` ({c['tokens']:,} tokens) for potential extraction.")
+            lines.append(f"{rec_num}. **CANDIDATE** -- Review `{c['file']}` ({c['tokens']:,} tokens) for potential extraction.")
         rec_num += 1
 
     if not candidates:
@@ -95,7 +95,7 @@ def generate_phase_summary(phase: str, artifacts: list, gate: dict | None = None
         target = gate.get("next_phase", "?").title()
         line += f" | Next: {target} (loop)"
     else:
-        line += f" | Next: Phase {num + 1 if num != 7 else '—'}: {next_p}"
+        line += f" | Next: Phase {num + 1 if num != 7 else '--'}: {next_p}"
 
     return line
 
@@ -118,9 +118,9 @@ def generate_final_summary(project_root: str, objective: str, phases_data: list)
 
         line = f"- **{name.title()}**: {status}"
         if artifacts:
-            line += f" — Artifacts: {', '.join(artifacts)}"
+            line += f" -- Artifacts: {', '.join(artifacts)}"
         if gate_iterations > 0:
-            line += f" — Gate iterations: {gate_iterations}"
+            line += f" -- Gate iterations: {gate_iterations}"
         lines.append(line)
 
     lines.append("")

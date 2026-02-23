@@ -34,9 +34,7 @@ If no argument: run `analyze` by default.
 
 This skill uses `agency_cli.py` for all deterministic token analysis operations:
 
-```bash
-CLI=$(python -c "import glob; print(glob.glob('**/shared/scripts/agency_cli.py', recursive=True)[0])")
-```
+Resolve CLI path via Glob: `**/shared/scripts/agency_cli.py`. Store result as `{CLI}`.
 
 ## Target Detection
 
@@ -60,15 +58,15 @@ Use the CLI for the entire analysis — it handles project vs skill mode automat
 
 ```bash
 # Run full token analysis
-python $CLI tokens analyze --root <target-path>
+python {CLI} tokens analyze --root <target-path>
 # Returns JSON: files, total_tokens, startup_tokens, fragmentation_candidates, etc.
 
 # Find duplicate content
-python $CLI tokens deduplicate --root <target-path>
+python {CLI} tokens deduplicate --root <target-path>
 # Returns: duplicates with locations and token counts
 
 # Generate the analysis report
-python $CLI report context-analysis --input <analysis-json> --output <target-path>/docs/CONTEXT_ANALYSIS.md
+python {CLI} report context-analysis --input <analysis-json> --output <target-path>/docs/CONTEXT_ANALYSIS.md
 ```
 
 Present a summary to the user with the top 3 recommendations from the analysis output.
@@ -83,10 +81,10 @@ Use CLI for deterministic fragmentation:
 
 ```bash
 # Fragment CLAUDE.md (Priority 1)
-python $CLI tokens fragment --file <root>/CLAUDE.md --threshold 300 --output-dir <root>/agent_docs/ [--dry-run]
+python {CLI} tokens fragment --file <root>/CLAUDE.md --threshold 300 --output-dir <root>/agent_docs/ [--dry-run]
 
 # Fragment a SKILL.md (Priority 1, skill mode)
-python $CLI tokens fragment-skill --file <path>/SKILL.md --threshold 300 --output-dir <path>/references/ [--dry-run]
+python {CLI} tokens fragment-skill --file <path>/SKILL.md --threshold 300 --output-dir <path>/references/ [--dry-run]
 ```
 
 After CLI handles the mechanical extraction, apply these judgment-based steps manually:
@@ -94,12 +92,12 @@ After CLI handles the mechanical extraction, apply these judgment-based steps ma
 1. **Priority 2 — Extract code to scripts:** Review CLI output for code blocks >50 lines and move to `scripts/`.
 2. **Priority 3 — Convert procedures to skills:** Identify step-by-step instructions (>10 steps) and create skill files.
 3. **Priority 4 — Build documentation index:** Add index table to CLAUDE.md linking extracted documents.
-4. **Priority 5 — Deduplicate:** Use `python $CLI tokens deduplicate --root <path>` to find duplicates, then resolve manually.
+4. **Priority 5 — Deduplicate:** Use `python {CLI} tokens deduplicate --root <path>` to find duplicates, then resolve manually.
 
 After applying changes:
 ```bash
 # Generate before/after comparison report
-python $CLI tokens report --before <before-analysis.json> --after <after-analysis.json> --output <root>/docs/CONTEXT_REPORT.md
+python {CLI} tokens report --before <before-analysis.json> --after <after-analysis.json> --output <root>/docs/CONTEXT_REPORT.md
 ```
 
 Present token savings summary to the user.

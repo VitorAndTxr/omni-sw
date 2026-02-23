@@ -1,5 +1,5 @@
 """
-agency_cli agent — Agent configuration: model lookup, naming, prompt generation, ordering.
+agency_cli agent -- Agent configuration: model lookup, naming, prompt generation, ordering.
 
 Usage:
     agency_cli agent model --role <role> --phase <phase>
@@ -12,6 +12,26 @@ Usage:
 import argparse
 import json
 import os
+
+VALID_ROLES = {"pm", "po", "tl", "dev", "qa"}
+VALID_PHASES = {"plan", "design", "validate", "implement", "review", "test", "document"}
+
+
+def validate_role(role: str) -> str:
+    """Validate and normalize role name."""
+    role = role.strip().lower()
+    if role not in VALID_ROLES:
+        raise ValueError(f"Invalid role: '{role}'. Valid roles: {', '.join(sorted(VALID_ROLES))}")
+    return role
+
+
+def validate_phase(phase: str) -> str:
+    """Validate and normalize phase name."""
+    phase = phase.strip().lower()
+    if phase not in VALID_PHASES:
+        raise ValueError(f"Invalid phase: '{phase}'. Valid phases: {', '.join(VALID_PHASES)}")
+    return phase
+
 
 # Full agent matrix: (phase, role) -> {model, type, description}
 AGENT_MATRIX = {
@@ -67,6 +87,8 @@ GATE_SUFFIXES = {
 
 def get_agent_name(role: str, phase: str, agent_type: str) -> str:
     """Generate deterministic agent name."""
+    role = validate_role(role)
+    phase = validate_phase(phase)
     if agent_type == "assist":
         return f"{role}-{phase}-assist"
     return f"{role}-{phase}"
@@ -74,7 +96,9 @@ def get_agent_name(role: str, phase: str, agent_type: str) -> str:
 
 def get_model(role: str, phase: str) -> str:
     """Lookup model for role/phase from matrix."""
-    key = (phase.lower(), role.lower())
+    role = validate_role(role)
+    phase = validate_phase(phase)
+    key = (phase, role)
     if key not in AGENT_MATRIX:
         raise ValueError(f"No agent defined for role={role}, phase={phase}")
     return AGENT_MATRIX[key]["model"]
@@ -82,7 +106,7 @@ def get_model(role: str, phase: str) -> str:
 
 def list_agents(phase: str) -> list[dict]:
     """List all agents for a phase with full config."""
-    phase = phase.lower()
+    phase = validate_phase(phase)
     agents = []
     for (p, role), info in AGENT_MATRIX.items():
         if p == phase:
@@ -102,7 +126,9 @@ def list_agents(phase: str) -> list[dict]:
 def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
                     backlog_path: str, objective: str, agent_type: str = None) -> str:
     """Generate the full agent spawn prompt."""
-    key = (phase.lower(), role.lower())
+    role = validate_role(role)
+    phase = validate_phase(phase)
+    key = (phase, role)
     if key not in AGENT_MATRIX:
         raise ValueError(f"No agent defined for role={role}, phase={phase}")
 
@@ -119,7 +145,7 @@ def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
             f"The backlog path is: {backlog_path}. "
             f"Read CLAUDE.md for context. "
             f"If you need clarification, list all questions prefixed with [QUESTIONS]. "
-            f"Do NOT use AskUserQuestion — return questions to me. "
+            f"Do NOT use AskUserQuestion -- return questions to me. "
             f"When done, mark your task as completed via TaskUpdate."
         )
         # Add gate suffix if applicable
@@ -135,7 +161,7 @@ def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
             f"The backlog path is: {backlog_path}. "
             f"Read CLAUDE.md for context. "
             f"Provide your [NOTES] and review findings. "
-            f"Do NOT use AskUserQuestion — return questions to me. "
+            f"Do NOT use AskUserQuestion -- return questions to me. "
             f"When done, mark your task as completed via TaskUpdate."
         )
 
@@ -144,7 +170,7 @@ def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
 
 def get_order(phase: str) -> list[dict]:
     """Get execution order (waves) for a phase."""
-    phase = phase.lower()
+    phase = validate_phase(phase)
     if phase not in PHASE_ORDER:
         raise ValueError(f"Unknown phase: {phase}")
 
@@ -205,12 +231,21 @@ def handle_agent(args: list[str]) -> dict | list | str:
         parser.add_argument("--project-root", required=True)
         parser.add_argument("--script-path", required=True)
         parser.add_argument("--backlog-path", required=True)
-        parser.add_argument("--objective", required=True)
+        parser.add_argument("--objective", required=False, default=None)
+        parser.add_argument("--objective-stdin", action="store_true",
+                            help="Read objective from stdin (avoids shell escaping issues)")
         parser.add_argument("--type", choices=["lead", "assist"], default=None)
         opts = parser.parse_args(args[1:])
+        if opts.objective_stdin:
+            import sys as _sys
+            objective = _sys.stdin.read().strip()
+        elif opts.objective:
+            objective = opts.objective
+        else:
+            raise ValueError("Either --objective or --objective-stdin is required")
         prompt = generate_prompt(
             opts.role, opts.phase, opts.project_root,
-            opts.script_path, opts.backlog_path, opts.objective, opts.type
+            opts.script_path, opts.backlog_path, objective, opts.type
         )
         return {"prompt": prompt, "model": get_model(opts.role, opts.phase),
                 "name": get_agent_name(opts.role, opts.phase,

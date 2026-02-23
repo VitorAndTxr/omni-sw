@@ -1,5 +1,5 @@
 """
-agency_cli phase — Phase state machine for SDLC orchestration.
+agency_cli phase -- Phase state machine for SDLC orchestration.
 
 Usage:
     agency_cli phase sequence                     # Returns ordered phase list
@@ -80,9 +80,9 @@ def get_next_phase(current: str, verdict: str) -> dict:
         if pm_verdict == "APPROVED" and tl_verdict == "APPROVED":
             return {"next_phase": "implement", "action": "proceed", "reason": "Both approved"}
         elif pm_verdict == "REPROVED":
-            return {"next_phase": "plan", "action": "loop_back", "reason": "PM reproved — return to Plan"}
+            return {"next_phase": "plan", "action": "loop_back", "reason": "PM reproved -- return to Plan"}
         elif tl_verdict == "REPROVED":
-            return {"next_phase": "design", "action": "loop_back", "reason": "TL reproved — return to Design"}
+            return {"next_phase": "design", "action": "loop_back", "reason": "TL reproved -- return to Design"}
 
     elif current == "review":
         if verdict == "PASS":
@@ -94,12 +94,12 @@ def get_next_phase(current: str, verdict: str) -> dict:
         if verdict == "PASS":
             return {"next_phase": "document", "action": "proceed", "reason": "All tests pass"}
         elif verdict == "FAIL_BUG":
-            return {"next_phase": "implement", "action": "loop_back", "reason": "Bug found — return to Implement"}
+            return {"next_phase": "implement", "action": "loop_back", "reason": "Bug found -- return to Implement"}
         elif verdict == "FAIL_TEST":
             return {
                 "next_phase": "test",
                 "action": "fix_tests",
-                "reason": "Test issue — spawn qa-test-fix to fix tests, then re-run",
+                "reason": "Test issue -- spawn qa-test-fix to fix tests, then re-run",
                 "spawn_fix_agent": True,
             }
 
@@ -124,9 +124,62 @@ def get_artifacts(phase: str, project_root: str) -> dict:
     return {"phase": phase, "artifacts": resolved}
 
 
+def validate_artifacts(phase: str, project_root: str) -> dict:
+    """Check if required artifacts from a phase exist before proceeding."""
+    phase = phase.lower()
+    if phase not in PHASE_INFO:
+        raise ValueError(f"Unknown phase: {phase}. Valid: {', '.join(PHASES)}")
+
+    info = PHASE_INFO[phase]
+    results = []
+    all_exist = True
+
+    for artifact in info["artifacts"]:
+        abs_path = os.path.join(project_root, artifact)
+        exists = os.path.exists(abs_path)
+        is_dir = os.path.isdir(abs_path)
+        is_empty = False
+
+        if exists:
+            if is_dir:
+                # Check directory is not empty
+                is_empty = len(os.listdir(abs_path)) == 0
+            else:
+                is_empty = os.path.getsize(abs_path) == 0
+
+        valid = exists and not is_empty
+        if not valid:
+            all_exist = False
+
+        results.append({
+            "artifact": artifact,
+            "absolute": abs_path,
+            "exists": exists,
+            "is_empty": is_empty,
+            "valid": valid,
+        })
+
+    # Determine which phase this blocks
+    idx = PHASES.index(phase)
+    next_phase = PHASES[idx + 1] if idx < len(PHASES) - 1 else None
+
+    return {
+        "phase": phase,
+        "all_valid": all_exist,
+        "can_proceed": all_exist,
+        "next_phase": next_phase,
+        "artifacts": results,
+        "message": (
+            f"All artifacts for {phase} are present. Ready to proceed to {next_phase}."
+            if all_exist
+            else f"Missing artifacts for {phase}: {', '.join(a['artifact'] for a in results if not a['valid'])}"
+        ),
+    }
+
+
 def handle_phase(args: list[str]) -> dict | list:
     if not args:
-        raise ValueError("Subcommand required: sequence, next, artifacts, info")
+        raise ValueError("Subcommand required: sequence, next, artifacts, info, validate-artifacts")
 
     subcmd = args[0]
 
@@ -156,5 +209,12 @@ def handle_phase(args: list[str]) -> dict | list:
             raise ValueError(f"Unknown phase: {phase}")
         return {"phase": phase, **PHASE_INFO[phase]}
 
+    elif subcmd == "validate-artifacts":
+        parser = argparse.ArgumentParser(prog="agency_cli phase validate-artifacts")
+        parser.add_argument("--phase", required=True, help="Phase to validate")
+        parser.add_argument("--project-root", required=True, help="Project root path")
+        opts = parser.parse_args(args[1:])
+        return validate_artifacts(opts.phase, opts.project_root)
+
     else:
-        raise ValueError(f"Unknown subcommand: {subcmd}. Valid: sequence, next, artifacts, info")
+        raise ValueError(f"Unknown subcommand: {subcmd}. Valid: sequence, next, artifacts, info, validate-artifacts")

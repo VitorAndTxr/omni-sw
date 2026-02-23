@@ -19,20 +19,20 @@ Read-only codebase analysis skill. Discover every project under a scan root, ext
 
 This skill uses `agency_cli.py` for deterministic discovery, config extraction, and diagram generation:
 
-```bash
-CLI=$(python -c "import glob; print(glob.glob('**/shared/scripts/agency_cli.py', recursive=True)[0])")
+Resolve CLI path via Glob: `**/shared/scripts/agency_cli.py`. Store result as `{CLI}`.
 
+```bash
 # Discover repos (replaces manual Glob scanning)
-python $CLI scan discover --root <scan-root>
+python {CLI} scan discover --root {scan-root}
 
 # Full scan of a single repo (stack, endpoints, DB, env vars)
-python $CLI scan repo --root <repo-path>
+python {CLI} scan repo --root {repo-path}
 
 # Generate diagrams from scan results
-python $CLI diagram er --input scan-result.json --output docs/database/diagrams.md
-python $CLI diagram endpoints --input scan-result.json --output docs/endpoints.md
-python $CLI diagram service-map --input scan-result.json --output docs/service-map.md
-python $CLI diagram workflow --input scan-result.json --output docs/workflows.md
+python {CLI} diagram er --input scan-result.json --output docs/database/diagrams.md
+python {CLI} diagram endpoints --input scan-result.json --output docs/endpoints.md
+python {CLI} diagram service-map --input scan-result.json --output docs/service-map.md
+python {CLI} diagram workflow --input scan-result.json --output docs/workflows.md
 ```
 
 ## Variables
@@ -57,21 +57,21 @@ Scan and document the codebase in this order:
 2. **Discover and analyze repositories** -- Use the CLI for all deterministic discovery and extraction:
    ```bash
    # Step 2-3: Discover all repos and extract metadata (stack, DB, endpoints, env vars)
-   python $CLI scan discover --root <scan-root>
+   python {CLI} scan discover --root <scan-root>
    # Save output to scan-result.json for diagram generation
 
    # For deeper analysis of individual repos:
-   python $CLI scan repo --root <repo-path>
+   python {CLI} scan repo --root <repo-path>
    ```
 
 3. **Map cross-project relationships** -- Use LLM judgment for semantic cross-referencing that requires understanding of the codebase context (shared DBs by name matching, inter-service call patterns, shared packages). The CLI provides the raw data; the LLM connects the dots.
 
 4. **Generate diagrams** -- Use the CLI for deterministic diagram scaffolding, then enrich with LLM analysis:
    ```bash
-   python $CLI diagram er --input scan-result.json --output docs/database/diagrams.md
-   python $CLI diagram endpoints --input scan-result.json --output docs/endpoints.md
-   python $CLI diagram service-map --input scan-result.json --output docs/service-map.md
-   python $CLI diagram workflow --input scan-result.json --output docs/workflows.md
+   python {CLI} diagram er --input scan-result.json --output docs/database/diagrams.md
+   python {CLI} diagram endpoints --input scan-result.json --output docs/endpoints.md
+   python {CLI} diagram service-map --input scan-result.json --output docs/service-map.md
+   python {CLI} diagram workflow --input scan-result.json --output docs/workflows.md
    ```
    After generation, review and enrich: add entity details from source code analysis, complete ER diagrams with fields/relationships, add workflow details from business logic inspection.
 
@@ -80,46 +80,6 @@ Scan and document the codebase in this order:
 9. **Write `CLAUDE.md`** -- See `references/claude-md-template.md` for structure. Agent memory file at the scan root indexing the entire landscape.
 
 10. **Optimize context** -- After all artifacts are written, invoke the `/apply-progressive-disclosure optimize` skill on the scan root to fragment and optimize the generated `CLAUDE.md` and documentation files for minimal token consumption.
-
-## Discovery Patterns
-
-### .NET Projects
-
-```
-Glob: **/*.sln, **/*.csproj
-Entry points: **/Program.cs, **/Startup.cs
-DB configs: **/appsettings*.json (ConnectionStrings section), **/Data/*Context.cs
-Controllers: **/Controllers/**/*.cs
-Integrations: search for IHttpClientFactory, AddHttpClient, IServiceBus, MassTransit
-```
-
-### Node/TypeScript Projects
-
-```
-Glob: **/package.json (skip node_modules)
-Entry points: look at "main"/"scripts.start" in package.json
-DB configs: **/.env*, **/prisma/schema.prisma, **/sequelize config
-Routes: **/routes/**/*.ts, **/controllers/**/*.ts, Express router files
-Integrations: search for axios.create, fetch, amqplib, kafkajs
-```
-
-### Python Projects
-
-```
-Glob: **/pyproject.toml, **/setup.py, **/requirements.txt
-Entry points: **/main.py, **/app.py, **/manage.py
-DB configs: **/alembic.ini, **/models.py, **/*_models.py, SQLAlchemy engine configs
-Routes: **/routes/**/*.py, FastAPI/Flask route decorators
-Integrations: search for httpx, requests.Session, pika, confluent_kafka
-```
-
-### Docker Compose
-
-```
-Glob: **/docker-compose*.yml, **/docker-compose*.yaml
-Extract: service names, images, ports, depends_on, environment variables, volume mounts
-Map: which services correspond to which discovered projects (by build context path)
-```
 
 ## Diagram Rules
 

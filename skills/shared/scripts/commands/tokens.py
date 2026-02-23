@@ -1,5 +1,5 @@
 """
-agency_cli tokens — Token analysis, fragmentation, and deduplication.
+agency_cli tokens -- Token analysis, fragmentation, and deduplication.
 
 Usage:
     agency_cli tokens analyze --root <path>                           # Full token analysis
@@ -44,7 +44,7 @@ def estimate_file_tokens(file_path: str) -> dict:
 
 def analyze_project(root: str) -> dict:
     """Full token analysis of a project or skill directory."""
-    root = os.path.abspath(root)
+    root = os.path.normpath(os.path.abspath(root))
     is_skill = os.path.isfile(os.path.join(root, "SKILL.md"))
     is_project = os.path.isfile(os.path.join(root, "CLAUDE.md"))
 
@@ -125,7 +125,7 @@ def find_sections(content: str, min_tokens: int = 300) -> list[dict]:
     current_content = []
     current_level = 0
 
-    for line in content.split('\n'):
+    for line in content.splitlines():
         heading_match = re.match(r'^(#{1,6})\s+(.+)', line)
         if heading_match:
             # Save previous section
@@ -280,7 +280,7 @@ def fragment_skill(skill_path: str, threshold: int, output_dir: str, dry_run: bo
 
 def find_duplicates(root: str) -> dict:
     """Find duplicate content across markdown files."""
-    root = os.path.abspath(root)
+    root = os.path.normpath(os.path.abspath(root))
     # Collect all paragraphs from all md files
     paragraphs = defaultdict(list)  # text -> list of (file, line)
 
@@ -348,7 +348,7 @@ def generate_report(before_file: str, after_file: str, output_path: str) -> dict
         f"|--------|--------|-------|-----------|",
         f"| Total tokens | {before_total:,} | {after_total:,} | {reduction_total:,} ({reduction_pct:.1f}%) |",
         f"| Startup/trigger tokens | {before_startup:,} | {after_startup:,} | {reduction_startup:,} ({reduction_startup_pct:.1f}%) |",
-        f"| File count | {before.get('file_count', 0)} | {after.get('file_count', 0)} | — |",
+        f"| File count | {before.get('file_count', 0)} | {after.get('file_count', 0)} | -- |",
         "",
         "## File Changes\n",
     ]

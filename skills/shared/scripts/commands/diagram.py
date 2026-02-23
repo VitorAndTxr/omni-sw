@@ -1,5 +1,5 @@
 """
-agency_cli diagram — Mermaid diagram generation from scan data.
+agency_cli diagram -- Mermaid diagram generation from scan data.
 
 Usage:
     agency_cli diagram er --input <scan-json> --output <path>
@@ -138,7 +138,7 @@ def generate_workflow_diagram(scan_data: dict) -> str:
 
     repos = scan_data.get("repos", [scan_data])
     if len(repos) <= 1:
-        lines.append("Single-repo project — cross-service workflows not applicable.\n")
+        lines.append("Single-repo project -- cross-service workflows not applicable.\n")
         lines.append("Use code analysis for internal workflow documentation.\n")
         return "\n".join(lines)
 

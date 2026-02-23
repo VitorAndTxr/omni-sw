@@ -1,5 +1,5 @@
 """
-agency_cli scan — Repository/project discovery and config extraction.
+agency_cli scan -- Repository/project discovery and config extraction.
 
 Usage:
     agency_cli scan repo --root <path>              # Scan single repo
@@ -43,7 +43,7 @@ STACK_PATTERNS = {
 
 def discover_repos(root: str) -> list[dict]:
     """Discover all project repositories under a root directory."""
-    root = os.path.abspath(root)
+    root = os.path.normpath(os.path.abspath(root))
     repos = {}
 
     for dirpath, dirnames, filenames in os.walk(root):
@@ -289,23 +289,24 @@ def extract_endpoints(project_path: str) -> dict:
             continue
 
     # Express/Fastify routes
-    for js_file in glob.glob(os.path.join(project_path, "**", "*.{ts,js}"), recursive=True):
-        if 'node_modules' in js_file:
-            continue
-        try:
-            with open(js_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-            for match in re.finditer(
-                r'(?:app|router)\.(get|post|put|delete|patch)\([\'"]([^\'"]+)',
-                content, re.IGNORECASE
-            ):
-                endpoints.append({
-                    "method": match.group(1).upper(),
-                    "route": match.group(2),
-                    "file": os.path.relpath(js_file, project_path),
-                })
-        except Exception:
-            continue
+    for ext in ("*.ts", "*.js"):
+        for js_file in glob.glob(os.path.join(project_path, "**", ext), recursive=True):
+            if 'node_modules' in js_file:
+                continue
+            try:
+                with open(js_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                for match in re.finditer(
+                    r'(?:app|router)\.(get|post|put|delete|patch)\([\'"]([^\'"]+)',
+                    content, re.IGNORECASE
+                ):
+                    endpoints.append({
+                        "method": match.group(1).upper(),
+                        "route": match.group(2),
+                        "file": os.path.relpath(js_file, project_path),
+                    })
+            except Exception:
+                continue
 
     # Python FastAPI/Flask routes
     for py_file in glob.glob(os.path.join(project_path, "**", "*.py"), recursive=True):
@@ -413,7 +414,7 @@ def extract_db_config(project_path: str) -> dict:
 
 def full_repo_scan(root: str) -> dict:
     """Full scan of a single repository."""
-    root = os.path.abspath(root)
+    root = os.path.normpath(os.path.abspath(root))
     stack = detect_stack(root)
     endpoints = extract_endpoints(root)
     db_config = extract_db_config(root)
