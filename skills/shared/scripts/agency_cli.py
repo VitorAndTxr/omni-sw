@@ -18,6 +18,8 @@ Commands:
     diagram     Mermaid diagram generation from scan data
     tokens      Token analysis, fragmentation, deduplication
     report      Markdown report generation
+    state       Persistent state machine (init, update, gate-record, query, can-proceed, summary)
+    decision    Decision Log system (add, list, get, summary)
 """
 
 import sys
@@ -42,6 +44,8 @@ from commands.scan import handle_scan
 from commands.diagram import handle_diagram
 from commands.tokens import handle_tokens
 from commands.report import handle_report
+from commands.state import handle_state
+from commands.decision import handle_decision
 
 COMMANDS = {
     "init": handle_init,
@@ -53,6 +57,8 @@ COMMANDS = {
     "diagram": handle_diagram,
     "tokens": handle_tokens,
     "report": handle_report,
+    "state": handle_state,
+    "decision": handle_decision,
 }
 
 

@@ -56,3 +56,74 @@ Route to the phase matching the argument after `/{role}` (ask if none provided).
 ## Backlog Render Rule
 
 When performing multiple mutations in sequence (creating stories, changing statuses), call `render` only once after all mutations are complete. Do NOT render after every individual mutation.
+
+## State Tracking
+
+All agents must update the project state when starting and completing phase work. This enables workflow enforcement, crash recovery, and metrics collection.
+
+### On Phase Start
+
+Before doing any phase work, update state:
+
+```bash
+python {CLI} state update --state-path {STATE_PATH} --phase {current_phase} --status in_progress --agent {agent_name} --agent-status in_progress
+```
+
+Where `{STATE_PATH}` is `{project_root}/agent_docs/agency/STATE.json`. If the orchestrator provided `STATE_PATH` in your spawn prompt, use it directly. Otherwise derive it from project root.
+
+If STATE.json doesn't exist yet, the first agent (typically pm-plan via orchestrator) should initialize it:
+
+```bash
+python {CLI} state init --project {project_name} --objective "{objective}" --state-path {STATE_PATH}
+```
+
+### On Phase Completion
+
+After producing all artifacts for your phase:
+
+```bash
+python {CLI} state update --state-path {STATE_PATH} --phase {current_phase} --status completed --agent {agent_name} --agent-status completed
+```
+
+### On Gate Verdict (Gate phases only: validate, review, test)
+
+After writing your verdict, record it in state:
+
+```bash
+# Validate (PM or TL):
+python {CLI} state gate-record --state-path {STATE_PATH} --phase validate --verdict "APPROVED" --pm APPROVED --tl APPROVED
+
+# Review (TL):
+python {CLI} state gate-record --state-path {STATE_PATH} --phase review --verdict PASS
+
+# Test (QA):
+python {CLI} state gate-record --state-path {STATE_PATH} --phase test --verdict PASS --tests-passed 42 --tests-failed 0
+```
+
+### Important Rules
+
+- State updates are **non-blocking** — if the state command fails, continue your work and report the failure.
+- The orchestrator is responsible for `state init`. Individual agents only call `state update` and `state gate-record`.
+- Assist agents do NOT update phase status (only their agent status).
+
+## Decision Log
+
+When making significant design decisions, trade-offs, or choosing between alternatives, record them:
+
+```bash
+python {CLI} decision add --decisions-path {project_root}/docs/DECISIONS.md --phase {phase} --agent {role} --title "Short decision title" --context "Why this decision was needed" --alternatives "Option A (rejected: reason), Option B (rejected: reason)" --decision "What was decided" --impact "Affected stories or components"
+```
+
+### When to Record Decisions
+
+- **TL in Design:** Architecture choices, technology selections, pattern decisions
+- **TL in Review:** Accepted deviations from architecture, new patterns adopted
+- **Dev in Implement:** Implementation trade-offs, library choices within scope
+- **PM in Validate:** Scope changes, requirement reinterpretations
+- **QA in Test:** Test strategy decisions, coverage trade-offs
+
+### Important Rules
+
+- Only record decisions that affect the project direction — not routine implementation choices.
+- The decision log is append-only. Never edit or delete existing entries.
+- If unsure whether something qualifies as a "decision", err on the side of recording it.

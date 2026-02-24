@@ -46,8 +46,17 @@ Lead planning. Gather requirements from client and produce structured project br
 1. Read existing `CLAUDE.md` for project context.
 2. Engage client in structured conversation: business objectives, scope, constraints, stakeholders, risks.
 3. Produce `docs/PROJECT_BRIEF.md` following template in `~/.claude/docs/templates/PROJECT_BRIEF.md`.
-4. **Optional team orchestration:** Spawn PO to create backlog from brief in parallel.
-5. If not using teams: instruct user to invoke `/po plan`.
+4. **Feedback Integration:** If TL/Dev/QA assists provided notes (risk assessment, implementability, testability), append a `## Feedback Integration` section to PROJECT_BRIEF.md:
+   ```markdown
+   ## Feedback Integration
+   | Source | Feedback | Disposition | Rationale |
+   |--------|----------|-------------|-----------|
+   | tl-plan-assist | High risk: third-party API rate limits | Incorporated | Added rate limiting constraint to §Constraints |
+   | dev-plan-assist | Library X deprecated, use Y | Incorporated | Updated tech stack recommendation |
+   | qa-plan-assist | Ambiguous AC on US-003 | Deferred | Flagged for PO to clarify during backlog creation |
+   ```
+5. **Optional team orchestration:** Spawn PO to create backlog from brief in parallel.
+6. If not using teams: instruct user to invoke `/po plan`.
 
 **Output:** `docs/PROJECT_BRIEF.md`
 

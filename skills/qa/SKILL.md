@@ -66,6 +66,11 @@ Lead testing phase. Write comprehensive tests and execute them.
 - NEVER modify files in `src/`.
 - ONLY create/edit files in `tests/`.
 - Write structured bug reports, not vague descriptions.
+- If TL test assist reviewed coverage, document the feedback integration in TEST_REPORT.md:
+  ## Coverage Review Integration
+  | Source | Feedback | Action Taken |
+  |--------|----------|-------------|
+  | tl-test-assist | Missing edge case for negative amounts | Added test: TransferNegativeAmount_ShouldThrow |
 
 **Output:** Test files in `tests/`, `docs/TEST_REPORT.md`
 

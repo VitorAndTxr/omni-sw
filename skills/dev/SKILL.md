@@ -56,6 +56,10 @@ Lead implementation. Write production code that faithfully implements the approv
 - If deviation from architecture is needed, STOP and explain why.
 - Do NOT write tests — that is QA's responsibility.
 - Do NOT write documentation beyond inline code comments.
+- If TL assist provided technical guidance during implementation, document it in a `## Implementation Notes` section at the end of each major source file or in a separate `docs/IMPLEMENTATION_NOTES.md` file:
+  | Source | Guidance | Action Taken |
+  |--------|----------|-------------|
+  | tl-implement-assist | Use bulk insert for batch operations | Applied SqlBulkCopy in DataRepository |
 
 **Output:** Source code in `src/`
 

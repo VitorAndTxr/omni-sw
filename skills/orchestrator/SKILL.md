@@ -53,10 +53,17 @@ python {CLI} init --scan-root {workspace} --create-dirs
 
 This returns JSON with: `project_root`, `script_path`, `backlog_path`, `team_name`, `claude_md`. Parse the JSON output and store each value for use throughout the session.
 
+Then initialize the state machine:
+```bash
+python {CLI} state init --project {project_name} --objective "{OBJECTIVE}" --state-path {PROJECT_ROOT}/agent_docs/agency/STATE.json
+```
+Store `{PROJECT_ROOT}/agent_docs/agency/STATE.json` as `STATE_PATH` for all subsequent commands.
+
 ### Step 3: Complete setup
 
 After parsing `init` output:
 1. Read `CLAUDE.md` for project context (stack, conventions, domain).
+1.5. **Check for existing state:** `python {CLI} state query --state-path {STATE_PATH}`. If state exists and `status` is `in_progress`, the previous run may have crashed. Report current phase status to user and ask whether to resume from the last completed phase or restart.
 2. Create the team: `TeamCreate` with name from `team_name`.
 3. Inform the user: "Starting SDLC for: {OBJECTIVE}. Project root: {PROJECT_ROOT}."
 4. Read `references/phase-matrix.md` and `references/phase-details.md`.
@@ -94,11 +101,14 @@ Task(
 
 Each phase is self-contained: spawn → work → shutdown. See `references/phase-details.md` for step-by-step instructions per phase.
 
-1. Get phase agents and order: `python {CLI} agent order --phase <phase>`
-2. Spawn wave 1 agents, then wave 2 after wave 1 completes, etc.
-3. Monitor via `TaskList` and handle `[QUESTIONS]` via `AskUserQuestion`
-4. When all phase tasks complete, shutdown all phase agents via `SendMessage` (type: `shutdown_request`)
-5. Proceed to next phase
+1. **Check prerequisites:** `python {CLI} state can-proceed --state-path {STATE_PATH} --to-phase <phase>`. If not allowed, report the blocker to the user and do NOT proceed.
+2. **Mark phase started:** `python {CLI} state update --state-path {STATE_PATH} --phase <phase> --status in_progress`
+3. Get phase agents and order: `python {CLI} agent order --phase <phase>`
+4. Spawn wave 1 agents, then wave 2 after wave 1 completes, etc. Pass `STATE_PATH` in each agent's spawn prompt.
+5. Monitor via `TaskList` and handle `[QUESTIONS]` via `AskUserQuestion`
+6. When all phase tasks complete, shutdown all phase agents via `SendMessage` (type: `shutdown_request`)
+7. **Mark phase completed:** `python {CLI} state update --state-path {STATE_PATH} --phase <phase> --status completed`
+8. Proceed to next phase
 
 ## Gate Evaluation (CLI-Assisted)
 
@@ -113,6 +123,18 @@ python {CLI} gate parse --file {PROJECT_ROOT}/docs/REVIEW.md --phase review
 
 python {CLI} gate parse --file {PROJECT_ROOT}/docs/TEST_REPORT.md --phase test
 # Returns: {found, verdict, tests_passed, tests_failed}
+```
+
+After parsing the verdict, record it in state:
+```bash
+# For validate:
+python {CLI} state gate-record --state-path {STATE_PATH} --phase validate --verdict "{combined_verdict}" --pm {pm_verdict} --tl {tl_verdict}
+
+# For review:
+python {CLI} state gate-record --state-path {STATE_PATH} --phase review --verdict {verdict}
+
+# For test:
+python {CLI} state gate-record --state-path {STATE_PATH} --phase test --verdict {verdict} --tests-passed {passed} --tests-failed {failed}
 ```
 
 Then determine next action:
@@ -160,9 +182,12 @@ Agents return questions prefixed with `[QUESTIONS]`. When detected:
 
 1. Verify all tasks completed via `TaskList`.
 2. Delete the team via `TeamDelete`.
-3. Print final summary: objective, artifacts, outstanding issues, gate iterations used.
+3. Generate state summary: `python {CLI} state summary --state-path {STATE_PATH}`
+4. Print final summary: objective, artifacts, outstanding issues, gate iterations used.
 
 ## References
 
 - `references/phase-matrix.md` — Agent/model assignments, gate conditions, dependencies
 - `references/phase-details.md` — Step-by-step instructions for each phase
+- `STATE.json` at `{PROJECT_ROOT}/agent_docs/agency/STATE.json` — Persistent state tracking
+- `docs/DECISIONS.md` — Append-only decision log

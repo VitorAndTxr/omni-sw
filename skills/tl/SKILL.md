@@ -42,8 +42,17 @@ Lead design phase. Produce comprehensive architecture document.
 5. **Optional:** Spawn dev/qa teammates for implementability/testability review.
 6. Design and document: System Overview (Mermaid), Tech Stack, Data Models (ERD), API Contracts, Component Architecture, Error Handling Strategy, Security Considerations, Project Structure.
 7. Produce `docs/ARCHITECTURE.md` following template in `~/.claude/docs/templates/ARCHITECTURE.md`.
-8. Render updated backlog (once after all transitions).
-9. Instruct user to run Validate: `/pm validate` and `/tl validate`.
+8. **Feedback Integration:** If dev/qa assists provided notes, append a `## Feedback Integration` section to ARCHITECTURE.md documenting the disposition of each assist's feedback:
+   ```markdown
+   ## Feedback Integration
+   | Source | Feedback | Disposition | Rationale |
+   |--------|----------|-------------|-----------|
+   | dev-design-assist | Concern about ORM N+1 queries | Incorporated | Added eager loading strategy in §Data Access |
+   | qa-design-assist | Missing testable interface for auth | Incorporated | Added IAuthService interface |
+   ```
+   Dispositions: **Incorporated**, **Rejected**, **Deferred**. Every point must have a rationale.
+9. Render updated backlog (once after all transitions).
+10. Instruct user to run Validate: `/pm validate` and `/tl validate`.
 
 **Output:** `docs/ARCHITECTURE.md`
 
@@ -89,8 +98,9 @@ Lead code review phase. Produce structured review.
 3. Explore and read all source code.
 4. Review for: architecture compliance, code quality, security, error handling, performance, convention adherence (`CLAUDE.md`).
 5. Produce `docs/REVIEW.md` following template. Categorize issues as **blocking** or **suggestion**.
-6. If blocking issues: transition stories back to "In Progress", instruct user to run `/dev implement`.
-7. If no blocking issues: instruct user to proceed to `/qa test`.
+6. **Feedback Integration:** If qa-review-assist provided findings, add a `## QA Feedback Integration` section to REVIEW.md with the same table format, documenting how each QA observation was handled in the review.
+7. If blocking issues: transition stories back to "In Progress", instruct user to run `/dev implement`.
+8. If no blocking issues: instruct user to proceed to `/qa test`.
 
 **Output:** `docs/REVIEW.md`
 
