@@ -71,6 +71,22 @@ TL assist uses Sonnet (not Haiku) — technical guidance requires architecture c
 3. Handle Dev questions. If technical, relay to `tl-implement-assist` via `SendMessage`, then relay answer back.
 4. **Shutdown** all Phase 4 agents. Report: "Implementation complete."
 
+### Parallel Pipeline Mode (when multiple features exist)
+
+1. Group stories by feature: `python {CLI} pipeline group --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH} --status Validated`
+2. If only 1 group or ≤3 stories total: use standard single-dev mode (existing steps).
+3. If multiple independent groups exist:
+   a. For each group in wave 1 (parallel):
+      - Get agents: `python {CLI} pipeline agents --phase implement --feature {feature} --project-root {PROJECT_ROOT} --script-path {SCRIPT_PATH} --backlog-path {BACKLOG_PATH} --objective "{OBJECTIVE}"`
+      - Spawn dev lead and tl assist per feature (names like `dev-implement-auth`, `tl-implement-auth-assist`)
+      - Each dev works on their feature stories only
+   b. Monitor all pipelines via TaskList
+   c. As each dev completes, immediately check for ready-for-review stories:
+      `python {CLI} pipeline ready-for --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH} --phase review`
+   d. Spawn incremental TL review for completed features while other devs continue
+   e. After wave 1 completes, merge and start wave 2 groups
+4. Update state for each pipeline: `python {CLI} state update --state-path {STATE_PATH} --phase implement --status in_progress --notes "Pipeline: {feature}"`
+
 ## Phase 5: Review (GATE)
 
 **Goal:** `docs/REVIEW.md`.
@@ -87,6 +103,17 @@ TL assist uses Sonnet (not Haiku) — technical guidance requires architecture c
 5. **Shutdown** all Phase 5 agents.
 6. **Gate:** PASS → Phase 6. FAIL → loop to Phase 4. Escalate after 3 iterations.
 
+### Incremental Review Mode
+
+1. Check for stories ready: `python {CLI} pipeline ready-for --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH} --phase review`
+2. If stories are ready while implement is still running for other features:
+   - Spawn TL review scoped to ready stories only
+   - Name: `tl-review-{feature}`
+   - Do NOT wait for all implementation to complete
+3. Each review produces findings in `docs/REVIEW_{feature}.md` (feature-scoped)
+4. Merge all feature reviews into `docs/REVIEW.md` when all reviews complete
+5. Gate evaluation happens per-feature: a feature can proceed to test while another is still in review
+
 ## Phase 6: Test (GATE)
 
 **Goal:** Tests in `tests/` + `docs/TEST_REPORT.md`.
@@ -102,6 +129,14 @@ TL assist uses Sonnet (not Haiku) — technical guidance requires architecture c
 4. Read `docs/TEST_REPORT.md`, extract gate status.
 5. **Shutdown** all Phase 6 agents.
 6. **Gate:** PASS → Phase 7. FAIL_BUG → loop to Phase 4. FAIL_TEST → spawn `qa-test-fix` (sonnet) to fix and re-run. Escalate after 3 iterations.
+
+### Incremental Test Mode
+
+1. Check for reviewed stories: `python {CLI} pipeline ready-for --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH} --phase test`
+2. Spawn QA per feature as they pass review
+3. Feature-scoped test reports: `docs/TEST_REPORT_{feature}.md`
+4. Merge into final `docs/TEST_REPORT.md`
+5. Document phase starts only after ALL features pass test
 
 ## Phase 7: Document
 

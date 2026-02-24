@@ -20,6 +20,8 @@ Commands:
     report      Markdown report generation
     state       Persistent state machine (init, update, gate-record, query, can-proceed, summary)
     decision    Decision Log system (add, list, get, summary)
+    pipeline    Feature-based parallel execution pipelines (group, agents, status, ready-for)
+    metrics     Workflow observability (dashboard, stories, phase, export)
 """
 
 import sys
@@ -46,6 +48,8 @@ from commands.tokens import handle_tokens
 from commands.report import handle_report
 from commands.state import handle_state
 from commands.decision import handle_decision
+from commands.pipeline import handle_pipeline
+from commands.metrics import handle_metrics
 
 COMMANDS = {
     "init": handle_init,
@@ -59,6 +63,8 @@ COMMANDS = {
     "report": handle_report,
     "state": handle_state,
     "decision": handle_decision,
+    "pipeline": handle_pipeline,
+    "metrics": handle_metrics,
 }
 
 

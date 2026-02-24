@@ -110,6 +110,52 @@ Each phase is self-contained: spawn → work → shutdown. See `references/phase
 7. **Mark phase completed:** `python {CLI} state update --state-path {STATE_PATH} --phase <phase> --status completed`
 8. Proceed to next phase
 
+## Parallel Pipeline Execution
+
+For projects with multiple independent features, parallelize Implement→Review→Test per feature:
+
+### Activation Check
+
+After Validate gate passes:
+```bash
+python {CLI} pipeline group --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH} --status Validated
+```
+
+If result has ≥2 groups in wave 1 with `can_parallel: true`, activate pipeline mode.
+
+### Pipeline Lifecycle
+
+1. **Spawn parallel implementations:** For each wave 1 group, get feature-scoped agents:
+   ```bash
+   python {CLI} pipeline agents --phase implement --feature {feature} --project-root {PROJECT_ROOT} --script-path {SCRIPT_PATH} --backlog-path {BACKLOG_PATH} --objective "{OBJECTIVE}"
+   ```
+   Spawn all wave 1 dev leads in parallel.
+
+2. **Incremental review:** Poll for ready stories:
+   ```bash
+   python {CLI} pipeline ready-for --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH} --phase review
+   ```
+   Spawn TL review immediately when a feature's stories are all "In Review".
+
+3. **Incremental test:** Same polling pattern for test phase.
+
+4. **Convergence:** When all features pass test, proceed to Document phase (global).
+
+5. **Wave 2:** If cross-feature dependencies exist, wait for wave 1 to complete, then spawn wave 2 pipelines.
+
+### Pipeline State Tracking
+
+Track each pipeline in state:
+```bash
+python {CLI} state update --state-path {STATE_PATH} --phase implement --status in_progress --notes "Pipeline: {feature}, Stories: {story_ids}"
+```
+
+Use `pipeline status --state-path {STATE_PATH}` to check overall pipeline progress.
+
+### Fallback
+
+If `pipeline group` returns only 1 group, fall back to standard sequential mode.
+
 ## Gate Evaluation (CLI-Assisted)
 
 Use `agency_cli gate` to parse verdicts deterministically — no LLM reasoning needed:

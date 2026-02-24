@@ -106,3 +106,38 @@ Maximum 3 iterations per gate before escalating to user with full issue summary.
 - **Review:** TL first. QA adds section after TL completes.
 - **Test:** QA leads. TL reviews after.
 - **Document:** PM and TL can run in parallel. PO/Dev/QA after leads complete.
+
+## Parallel Pipeline Mode
+
+When the backlog contains multiple independent feature areas, the orchestrator can parallelize Implement → Review → Test per feature.
+
+### Pipeline Agent Naming
+
+| Phase | Feature | Lead Name | Assist Name |
+|-------|---------|-----------|-------------|
+| Implement | auth | `dev-implement-auth` | `tl-implement-auth-assist` |
+| Implement | billing | `dev-implement-billing` | `tl-implement-billing-assist` |
+| Review | auth | `tl-review-auth` | `qa-review-auth-assist` |
+| Test | auth | `qa-test-auth` | `tl-test-auth-assist` |
+
+### Pipeline Model Assignments
+
+Same model tier as standard mode — leads use the matrix model, assists use matrix model.
+
+### Pipeline Prerequisites
+
+- Pipeline mode activates automatically when `pipeline group` returns ≥2 independent groups
+- Plan, Design, and Validate always run globally (not per-feature)
+- Document always runs globally after all feature pipelines complete
+- Stories with cross-feature dependencies go to wave 2
+
+### Incremental Flow
+
+```
+Feature A:  Implement ─────→ Review ────→ Test ─────→ ┐
+Feature B:  Implement ──→ Review ─→ Test ──→           ├─→ Document
+Feature C:        Implement ──────→ Review → Test ───→ ┘
+```
+
+Each feature progresses independently through Implement→Review→Test.
+Reviews and tests start as soon as their prerequisites are met, not when the full phase completes.
