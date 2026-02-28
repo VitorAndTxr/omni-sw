@@ -32,7 +32,7 @@ Identify testability risks and ambiguous acceptance criteria. Read `docs/PROJECT
 
 ## Phase: Design (`/qa design`) — ASSISTS
 
-Review architecture for testability. Read `docs/ARCHITECTURE.md` and `docs/BACKLOG.md`. Evaluate: component isolation, mockable dependencies, testable data model, well-defined API contracts, separation of concerns. Flag concerns to TL.
+Review architecture for testability. Read `docs/ARCHITECTURE.md` and `docs/BACKLOG.md`. Evaluate: component isolation, mockable dependencies, testable data model, well-defined API contracts, separation of concerns, component relationships in Mermaid diagrams match codebase structure. Flag concerns to TL.
 
 **Allowed tools:** Read, Glob, Grep
 

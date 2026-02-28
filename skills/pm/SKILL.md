@@ -73,7 +73,7 @@ Lead business validation gate. Review design against business objectives.
 **Workflow:**
 1. Read `docs/PROJECT_BRIEF.md`, `docs/ARCHITECTURE.md`.
 2. Query backlog summary: `python {SCRIPT} list {BACKLOG_PATH} --format summary`
-3. Evaluate: objectives addressed, scope respected, constraints met, success criteria supported.
+3. Evaluate: objectives addressed, scope respected, constraints met, success criteria supported, architecture diagrams (Mermaid) align with business requirements.
 4. Produce verdict: **APPROVED** or **REPROVED** with rationale.
 5. Write business validation section in `docs/VALIDATION.md`.
 6. If REPROVED: specify changes needed, instruct user to go back to `/pm plan`.

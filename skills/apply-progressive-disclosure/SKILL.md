@@ -137,3 +137,4 @@ Never fragment or move these out of CLAUDE.md root, regardless of size:
 - Stack declaration
 - Directory structure overview
 - Documentation index table itself
+- Architectural diagrams (Mermaid syntax blocks must be preserved intact)

@@ -41,7 +41,7 @@ Review architecture for implementability. Read `docs/ARCHITECTURE.md`, `docs/BAC
 Lead implementation. Write production code that faithfully implements the approved architecture.
 
 **Workflow:**
-1. Read `docs/ARCHITECTURE.md` — the blueprint. Follow it precisely.
+1. Read `docs/ARCHITECTURE.md` — study the system overview, Mermaid architecture diagrams, and data models. This is the blueprint — follow it precisely.
 2. Query validated stories: `python {SCRIPT} list {BACKLOG_PATH} --status Validated --format json`
 3. Read `CLAUDE.md` — follow all conventions, patterns, forbidden pattern restrictions.
 4. Read `docs/VALIDATION.md` — understand conditions from validation gate.

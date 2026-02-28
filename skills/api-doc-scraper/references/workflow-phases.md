@@ -47,11 +47,16 @@ DESCRIPTION (for frontmatter): "{API Name} API technical reference — interacti
 
 STRUCTURE:
 - SKILL.md: Overview (API name, base URL, auth summary), quick-start example, endpoint index table, and references index
-- references/authentication.md: Full auth details, token flows, examples
+- references/authentication.md: Full auth details, token flows, examples, Mermaid sequenceDiagram of auth handshake
 - references/endpoints.md: Complete endpoint catalog grouped by resource
-- references/models.md: All data models/schemas
+- references/models.md: All data models/schemas with Mermaid erDiagram showing resource relationships
 - references/errors.md: Error codes, formats, troubleshooting
 - Additional references/ files if the corpus contains webhooks, SDKs, or rate-limit details
+
+DIAGRAM RULES:
+- All diagrams MUST use Mermaid syntax — no images, ASCII art, PlantUML, or external tools
+- Include at minimum: authentication flow (sequenceDiagram) and resource relationships (erDiagram or classDiagram)
+- Derive diagrams from the corpus endpoint and model data
 
 CONVENTIONS (from README_AGENCY.md at D:\Repos\README_AGENCY.md):
 - Follow the agency's skill structure: SKILL.md + references/ + optional scripts/ and assets/

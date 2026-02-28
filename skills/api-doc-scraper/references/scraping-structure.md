@@ -62,6 +62,14 @@ Use this template to organize scraped API documentation into a structured corpus
 - **Events:** {list of event types}
 - **Payload format:** {shape}
 - **Signature verification:** {method}
+
+## Diagrams (Mermaid)
+
+### Authentication Flow
+{Mermaid sequenceDiagram showing token acquisition / auth handshake}
+
+### Resource Relationships
+{Mermaid erDiagram or classDiagram showing how API resources relate to each other}
 ```
 
 ## Scraping Priority
