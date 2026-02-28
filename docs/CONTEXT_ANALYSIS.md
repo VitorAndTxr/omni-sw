@@ -97,18 +97,19 @@ If README_AGENCY.md is fragmented into a hub document with on-demand reference f
 Split README_AGENCY.md into a lightweight hub (~800 tokens) with an index table, and extract each major section into `~/.claude/docs/agency/` as standalone reference files. The hub retains: title, overview (condensed), role-phase matrix, and an index table pointing to each reference file with "when to load" triggers.
 
 **Suggested structure:**
-```
-~/.claude/docs/agency/
-├── architecture-diagrams.md      (§2 — 418 tokens)
-├── agent-reference.md            (§4 — 1,160 tokens)
-├── phase-walkthrough.md          (§5 — 2,163 tokens)
-├── artifact-map.md               (§6 — 823 tokens)
-├── claude-md-configuration.md    (§7 — 520 tokens)
-├── hooks-system.md               (§8 — 880 tokens)
-├── templates.md                  (§9 — 593 tokens)
-├── extending-the-agency.md       (§10 — 988 tokens)
-├── known-limitations.md          (§11 — 475 tokens)
-└── file-index.md                 (§12 — 855 tokens)
+```mermaid
+graph TD
+    Root["~/.claude/docs/agency/"]
+    Root --> arch["architecture-diagrams.md<br/><i>§2 — 418 tokens</i>"]
+    Root --> agent["agent-reference.md<br/><i>§4 — 1,160 tokens</i>"]
+    Root --> phase["phase-walkthrough.md<br/><i>§5 — 2,163 tokens</i>"]
+    Root --> artifact["artifact-map.md<br/><i>§6 — 823 tokens</i>"]
+    Root --> claude["claude-md-configuration.md<br/><i>§7 — 520 tokens</i>"]
+    Root --> hooks["hooks-system.md<br/><i>§8 — 880 tokens</i>"]
+    Root --> tmpl["templates.md<br/><i>§9 — 593 tokens</i>"]
+    Root --> ext["extending-the-agency.md<br/><i>§10 — 988 tokens</i>"]
+    Root --> lim["known-limitations.md<br/><i>§11 — 475 tokens</i>"]
+    Root --> idx["file-index.md<br/><i>§12 — 855 tokens</i>"]
 ```
 
 ### 2. Deduplicate README vs SKILL.md content

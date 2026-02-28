@@ -53,16 +53,15 @@ Cada agente é "fresh" — sem memória entre sessões. O contexto vem dos docum
 
 **Proposta:** Introduzir o conceito de "feature pipeline" — após Plan+Design+Validate (que continuam globais), as fases Implement → Review → Test passam a rodar **por feature/story** em paralelo.
 
-```
-Plan (global) → Design (global) → Validate (global)
-                                        ↓
-                    ┌─────────────────────────────────┐
-                    │  Feature A: Implement→Review→Test │  (pipeline paralelo)
-                    │  Feature B: Implement→Review→Test │  (pipeline paralelo)
-                    │  Feature C: Implement→Review→Test │  (pipeline paralelo)
-                    └─────────────────────────────────┘
-                                        ↓
-                               Document (global)
+```mermaid
+graph TD
+    Plan["Plan (global)"] --> Design["Design (global)"] --> Validate["Validate (global)"]
+    Validate --> A["Feature A: Implement → Review → Test"]
+    Validate --> B["Feature B: Implement → Review → Test"]
+    Validate --> C["Feature C: Implement → Review → Test"]
+    A --> Document["Document (global)"]
+    B --> Document
+    C --> Document
 ```
 
 **Implementação:**

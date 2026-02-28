@@ -16,10 +16,11 @@ Agents decide based on workload:
 
 PM spawns PO as a teammate to break down objectives into user stories while PM continues gathering requirements.
 
-```
-TeamCreate: "plan-{project}"
-├── pm (leader) → gathers requirements, produces PROJECT_BRIEF.md
-└── po (teammate) → reads brief, creates US via backlog_manager.py, asks client questions
+```mermaid
+graph TD
+    team["TeamCreate: plan-{project}"]
+    team --> pm["pm (leader)<br/><i>gathers requirements, produces PROJECT_BRIEF.md</i>"]
+    team --> po["po (teammate)<br/><i>reads brief, creates US via backlog_manager.py</i>"]
 ```
 
 PO uses `backlog_manager.py create` for each user story. PM reviews the backlog summary when PO finishes.
@@ -28,11 +29,12 @@ PO uses `backlog_manager.py create` for each user story. PM reviews the backlog 
 
 TL spawns dev and qa as teammates to review stories in parallel.
 
-```
-TeamCreate: "design-{project}"
-├── tl (leader) → produces ARCHITECTURE.md, coordinates
-├── dev (teammate) → reviews stories for implementability, flags risks
-└── qa (teammate) → reviews stories for testability, flags gaps
+```mermaid
+graph TD
+    team["TeamCreate: design-{project}"]
+    team --> tl["tl (leader)<br/><i>produces ARCHITECTURE.md, coordinates</i>"]
+    team --> dev["dev (teammate)<br/><i>reviews implementability, flags risks</i>"]
+    team --> qa["qa (teammate)<br/><i>reviews testability, flags gaps</i>"]
 ```
 
 Each teammate reads stories via `backlog_manager.py list --status Ready` and provides feedback. TL updates story statuses to "In Design" as they are processed.
@@ -41,11 +43,12 @@ Each teammate reads stories via `backlog_manager.py list --status Ready` and pro
 
 PM and TL can spawn teammates to validate different aspects in parallel.
 
-```
-TeamCreate: "validate-{project}"
-├── pm (leader) → business validation
-├── tl (teammate) → technical validation
-└── po (teammate) → backlog alignment check
+```mermaid
+graph TD
+    team["TeamCreate: validate-{project}"]
+    team --> pm["pm (leader)<br/><i>business validation</i>"]
+    team --> tl["tl (teammate)<br/><i>technical validation</i>"]
+    team --> po["po (teammate)<br/><i>backlog alignment check</i>"]
 ```
 
 Each validates against the backlog and updates VALIDATION.md with their section.
@@ -54,11 +57,12 @@ Each validates against the backlog and updates VALIDATION.md with their section.
 
 When a project has an existing `docs/BACKLOG.md` in the old markdown format, spawn a migration review team to convert it to the JSON system.
 
-```
-TeamCreate: "migrate-backlog-{project}"
-├── po or pm (leader) → coordinates migration, resolves conflicts, final review
-├── reviewer (teammate) → reads old BACKLOG.md, extracts stories, creates via script
-└── validator (teammate) → compares old vs new, reports discrepancies & missing data
+```mermaid
+graph TD
+    team["TeamCreate: migrate-backlog-{project}"]
+    team --> leader["po or pm (leader)<br/><i>coordinates migration, resolves conflicts</i>"]
+    team --> reviewer["reviewer (teammate)<br/><i>reads old BACKLOG.md, extracts stories</i>"]
+    team --> validator["validator (teammate)<br/><i>compares old vs new, reports discrepancies</i>"]
 ```
 
 **Reviewer task:** Parse the legacy markdown for US-XXX stories, extracting structured fields (title, role/want/benefit, priority, acceptance criteria, notes, dependencies, feature area). Call `backlog_manager.py create` for each. Preserve original IDs. Migrate open questions via `backlog_manager.py question`.

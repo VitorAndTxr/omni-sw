@@ -24,26 +24,21 @@
 
 ### Project Structure
 
-```
-src/
-├── Api/                    # ASP.NET Core host, controllers, middleware
-│   ├── Controllers/
-│   ├── Middleware/
-│   └── Program.cs
-├── Application/            # Use cases, DTOs, interfaces
-│   ├── DTOs/
-│   ├── Interfaces/
-│   └── Services/
-├── Domain/                 # Entities, value objects, domain events
-│   ├── Entities/
-│   └── Enums/
-└── Infrastructure/         # EF Core, repositories, external services
-    ├── Data/
-    ├── Repositories/
-    └── Migrations/
-tests/
-├── Unit/                   # Unit tests (services, domain logic)
-└── Integration/            # Integration tests (API, database)
+```mermaid
+graph TD
+    src["src/"]
+    src --> Api["Api/<br/><i>ASP.NET Core host, controllers, middleware</i>"]
+    Api --> Controllers & Middleware & Program["Program.cs"]
+    src --> App["Application/<br/><i>Use cases, DTOs, interfaces</i>"]
+    App --> DTOs & Interfaces & Services
+    src --> Domain["Domain/<br/><i>Entities, value objects, domain events</i>"]
+    Domain --> Entities & Enums
+    src --> Infra["Infrastructure/<br/><i>EF Core, repositories, external services</i>"]
+    Infra --> Data & Repositories & Migrations
+
+    tests["tests/"]
+    tests --> Unit["Unit/<br/><i>Unit tests</i>"]
+    tests --> Integration["Integration/<br/><i>Integration tests</i>"]
 ```
 
 ### Error Handling

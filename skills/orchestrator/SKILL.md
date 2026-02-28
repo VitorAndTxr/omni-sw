@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-model: opus
+model: sonnet
 description: >-
   SDLC Orchestrator — Manages the full Software Development Agency workflow end-to-end.
   Takes a project objective as argument and drives all 7 phases (Plan, Design, Validate,
@@ -68,47 +68,75 @@ After parsing `init` output:
 3. Inform the user: "Starting SDLC for: {OBJECTIVE}. Project root: {PROJECT_ROOT}."
 4. Read `references/phase-matrix.md` and `references/phase-details.md`.
 
-## Spawning Teammates (CLI-Assisted)
+## Phase Lifecycle (Optimized)
 
-Use `agency_cli agent` for all agent configuration:
+Each phase is self-contained: prepare → spawn → work → shutdown → checkpoint. Use `phase prepare` to combine multiple CLI calls into ONE turn, reducing context growth.
 
+**IMPORTANT — Context Cost Rules:**
+- Minimize orchestrator turns. Each turn re-reads the full context at the main session's model cost.
+- Use `phase prepare` instead of separate `state update` + `agent order` + `agent prompt` calls.
+- Do NOT read `TaskOutput` for full agent output. Agents write artifacts to files; use `TaskList` for completion status only.
+- After each phase, write a checkpoint so context compaction doesn't lose state.
+
+### Standard Phase Flow
+
+1. **Prepare phase (ONE call — replaces 3+ separate calls):**
+   ```bash
+   python {CLI} phase prepare --phase <phase> --project-root {PROJECT_ROOT} --state-path {STATE_PATH} --script-path {SCRIPT_PATH} --backlog-path {BACKLOG_PATH} --objective "{OBJECTIVE}" [--skip-assists]
+   # Returns: {ready, waves (with prompts), artifacts, goal, has_gate}
+   # Also marks phase as in_progress in STATE.json automatically.
+   # NOTE: If objective contains special shell chars like (), use --objective-stdin instead.
+   ```
+   If `ready` is false, report the blocker to the user and do NOT proceed.
+
+2. **Spawn agents** from the `waves` array in the response. Each wave entry includes full prompts:
+   ```
+   Task(
+     subagent_type: "general-purpose",
+     team_name: "$TEAM_NAME",
+     name: <agent.name>,
+     model: <agent.model>,
+     prompt: <agent.prompt>,
+     description: "...",
+     mode: "bypassPermissions"
+   )
+   ```
+   Spawn all agents in a wave in parallel. Wait for wave N to complete before spawning wave N+1.
+
+3. **Monitor via `TaskList`** — check task completion status. Handle `[QUESTIONS]` via `AskUserQuestion`.
+   **Do NOT use `TaskOutput` to read full agent output.** Agents write results to artifact files. Only use `TaskOutput` if you need to extract `[QUESTIONS]` markers.
+
+4. **Shutdown** all phase agents via `SendMessage` (type: `shutdown_request`).
+
+5. **Complete phase + checkpoint (ONE call):**
+   ```bash
+   python {CLI} state update --state-path {STATE_PATH} --phase <phase> --status completed && python {CLI} state checkpoint --state-path {STATE_PATH} --phase <phase> --project-root {PROJECT_ROOT}
+   ```
+   The checkpoint writes `agent_docs/agency/CHECKPOINT.md` — a compact summary of all progress. If context gets compacted, read this file to restore awareness.
+
+### The `--skip-assists` Flag
+
+For simpler projects or faster iterations, add `--skip-assists` to skip Haiku assist agents:
 ```bash
-python {CLI} agent prompt --role dev --phase implement --project-root {PROJECT_ROOT} --script-path {SCRIPT_PATH} --backlog-path {BACKLOG_PATH} --objective "{OBJECTIVE}"
-# Returns: {prompt, model, name}
-# NOTE: If objective contains special shell chars like (), use --objective-stdin instead:
-#   Write objective to a temp file, then: python {CLI} agent prompt ... --objective-stdin < objective.txt
+python {CLI} phase prepare --phase plan --skip-assists ...
+```
+This removes 11 assist spawns across the full SDLC. Leads still run at their designated models. Use when:
+- The project is small or well-understood
+- Iterating on a specific phase (no need for cross-role review)
+- Cost optimization is a priority
 
-python {CLI} agent order --phase design
-# Returns: [{wave: 1, agents: [{role, name, model}]}, {wave: 2, ...}]
-
-python {CLI} agent list --phase validate
+Also works with standalone commands:
+```bash
+python {CLI} agent order --phase plan --skip-assists
+python {CLI} agent list --phase plan --skip-assists
 ```
 
-Then spawn each agent via `Task`:
-```
-Task(
-  subagent_type: "general-purpose",
-  team_name: "$TEAM_NAME",
-  name: <name from CLI>,
-  model: <model from CLI>,
-  prompt: <prompt from CLI>,
-  description: "...",
-  mode: "bypassPermissions"
-)
-```
+### Context Recovery After Compaction
 
-## Phase Lifecycle
-
-Each phase is self-contained: spawn → work → shutdown. See `references/phase-details.md` for step-by-step instructions per phase.
-
-1. **Check prerequisites:** `python {CLI} state can-proceed --state-path {STATE_PATH} --to-phase <phase>`. If not allowed, report the blocker to the user and do NOT proceed.
-2. **Mark phase started:** `python {CLI} state update --state-path {STATE_PATH} --phase <phase> --status in_progress`
-3. Get phase agents and order: `python {CLI} agent order --phase <phase>`
-4. Spawn wave 1 agents, then wave 2 after wave 1 completes, etc. Pass `STATE_PATH` in each agent's spawn prompt.
-5. Monitor via `TaskList` and handle `[QUESTIONS]` via `AskUserQuestion`
-6. When all phase tasks complete, shutdown all phase agents via `SendMessage` (type: `shutdown_request`)
-7. **Mark phase completed:** `python {CLI} state update --state-path {STATE_PATH} --phase <phase> --status completed`
-8. Proceed to next phase
+If the Claude Code session context gets compacted mid-workflow:
+1. Read `{PROJECT_ROOT}/agent_docs/agency/CHECKPOINT.md` for full progress summary.
+2. Read `{STATE_PATH}` via `python {CLI} state query --state-path {STATE_PATH}` for raw state.
+3. Resume from the next pending phase using `phase prepare`.
 
 ## Parallel Pipeline Execution
 

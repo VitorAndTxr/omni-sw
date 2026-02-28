@@ -24,25 +24,21 @@ Um único script Python que centraliza todas as operações determinísticas, in
 
 ### Estrutura proposta
 
-```
-skills/shared/scripts/
-├── agency_cli.py          # Entry point (Click/argparse)
-├── commands/
-│   ├── init.py            # Resolução de paths + inicialização
-│   ├── phase.py           # State machine de fases
-│   ├── agent.py           # Spawn config (nomes, modelos, prompts)
-│   ├── gate.py            # Parsing de verdicts + roteamento
-│   ├── scan.py            # Discovery de repos/configs
-│   ├── diagram.py         # Geração de Mermaid
-│   ├── tokens.py          # Estimativa e análise de tokens
-│   └── report.py          # Geração de relatórios markdown
-└── templates/
-    ├── agent-prompt.txt
-    ├── architecture.md
-    ├── project-brief.md
-    ├── test-report.md
-    ├── review.md
-    └── context-report.md
+```mermaid
+graph TD
+    Root["skills/shared/scripts/"]
+    Root --> CLI["agency_cli.py<br/><i>Entry point</i>"]
+    Root --> cmds["commands/"]
+    cmds --> init["init.py<br/><i>Path resolution + init</i>"]
+    cmds --> phase["phase.py<br/><i>Phase state machine</i>"]
+    cmds --> agent["agent.py<br/><i>Spawn config</i>"]
+    cmds --> gate["gate.py<br/><i>Verdict parsing + routing</i>"]
+    cmds --> scan["scan.py<br/><i>Repo/config discovery</i>"]
+    cmds --> diagram["diagram.py<br/><i>Mermaid generation</i>"]
+    cmds --> tokens["tokens.py<br/><i>Token analysis</i>"]
+    cmds --> report["report.py<br/><i>Markdown report generation</i>"]
+    Root --> tmpl["templates/"]
+    tmpl --> t1["agent-prompt.txt"] & t2["architecture.md"] & t3["project-brief.md"] & t4["test-report.md"] & t5["review.md"] & t6["context-report.md"]
 ```
 
 ---

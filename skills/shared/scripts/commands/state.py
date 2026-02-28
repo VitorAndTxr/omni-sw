@@ -10,6 +10,10 @@ Usage:
     agency_cli state query --state-path <path> [--phase <phase>] [--field <field>]
     agency_cli state can-proceed --state-path <path> --to-phase <phase>
     agency_cli state summary --state-path <path>
+    agency_cli state checkpoint --state-path <path> --phase <phase> --project-root <path>
+        # Write a compact context checkpoint after phase completion.
+        # Produces a file the orchestrator can re-read after context compaction
+        # instead of relying on conversation history.
 """
 
 import argparse
@@ -483,10 +487,103 @@ def state_summary(args: list[str]) -> dict:
     }
 
 
+def checkpoint_state(args: list[str]) -> dict:
+    """Write a compact checkpoint file summarizing progress through the completed phase.
+
+    The checkpoint file serves as a recovery point: after context compaction in
+    Claude Code, the orchestrator can re-read this file to restore full awareness
+    of what happened without relying on conversation history.
+
+    Writes to: {project_root}/agent_docs/agency/CHECKPOINT.md
+    """
+    parser = argparse.ArgumentParser(prog="agency_cli state checkpoint")
+    parser.add_argument("--state-path", required=True, help="Path to STATE.json")
+    parser.add_argument("--phase", required=True, help="Phase just completed")
+    parser.add_argument("--project-root", required=True, help="Project root path")
+    opts = parser.parse_args(args)
+
+    state_path = os.path.abspath(opts.state_path)
+    state = _load_state(state_path)
+    phase = _validate_phase(opts.phase)
+    project_root = os.path.abspath(opts.project_root)
+
+    # Build compact checkpoint
+    lines = [
+        f"# SDLC Checkpoint — after {phase.title()} phase",
+        f"",
+        f"**Project:** {state['project']}",
+        f"**Objective:** {state['objective']}",
+        f"**Current phase:** {state.get('current_phase', 'N/A')}",
+        f"**Updated at:** {state.get('updated_at', 'N/A')}",
+        f"",
+        f"## Phase Status",
+        f"",
+    ]
+
+    for p in PHASES:
+        p_obj = state["phases"][p]
+        status = p_obj["status"]
+        marker = "✅" if status == "completed" else ("🔄" if status == "in_progress" else "⏳")
+        duration = state["metrics"]["phase_durations"].get(p)
+        dur_str = f" ({duration}s)" if duration else ""
+        line = f"- {marker} **{p.title()}**: {status}{dur_str}"
+
+        # Add gate info
+        if "gate" in p_obj and p_obj["gate"].get("verdicts"):
+            gate = p_obj["gate"]
+            last = gate["verdicts"][-1]
+            verdict_str = last.get("combined") or last.get("verdict", "?")
+            line += f" — Gate: {verdict_str} (iter {gate['iterations']})"
+
+        lines.append(line)
+
+    # Add artifact inventory
+    lines.extend(["", "## Artifacts Produced", ""])
+    for p in PHASES:
+        if state["phases"][p]["status"] not in ("completed", "in_progress"):
+            continue
+        from commands.phase import PHASE_INFO
+        if p in PHASE_INFO:
+            for artifact in PHASE_INFO[p]["artifacts"]:
+                abs_path = os.path.join(project_root, artifact)
+                exists = os.path.exists(abs_path)
+                lines.append(f"- {'✅' if exists else '❌'} `{artifact}`")
+
+    # Add notes from phases
+    notes_found = False
+    for p in PHASES:
+        p_obj = state["phases"][p]
+        if p_obj.get("notes"):
+            if not notes_found:
+                lines.extend(["", "## Phase Notes", ""])
+                notes_found = True
+            lines.append(f"- **{p.title()}:** {p_obj['notes']}")
+
+    lines.extend(["", "## Metrics", ""])
+    lines.append(f"- Completed phases: {state['metrics']['completed_phases']}/{state['metrics']['total_phases']}")
+    lines.append(f"- Total gate iterations: {state['metrics']['total_gate_iterations']}")
+
+    # Write checkpoint file
+    checkpoint_path = os.path.join(project_root, "agent_docs", "agency", "CHECKPOINT.md")
+    os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+
+    content = "\n".join(lines) + "\n"
+    with open(checkpoint_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    return {
+        "status": "written",
+        "checkpoint_path": checkpoint_path,
+        "phase": phase,
+        "completed_phases": state["metrics"]["completed_phases"],
+        "total_phases": state["metrics"]["total_phases"],
+    }
+
+
 def handle_state(args: list[str]) -> dict | str:
     """Main handler for state subcommands."""
     if not args:
-        raise ValueError("Subcommand required: init, update, gate-record, query, can-proceed, summary")
+        raise ValueError("Subcommand required: init, update, gate-record, query, can-proceed, summary, checkpoint")
 
     subcmd = args[0]
 
@@ -502,5 +599,7 @@ def handle_state(args: list[str]) -> dict | str:
         return can_proceed_to_phase(args[1:])
     elif subcmd == "summary":
         return state_summary(args[1:])
+    elif subcmd == "checkpoint":
+        return checkpoint_state(args[1:])
     else:
-        raise ValueError(f"Unknown subcommand: {subcmd}. Valid: init, update, gate-record, query, can-proceed, summary")
+        raise ValueError(f"Unknown subcommand: {subcmd}. Valid: init, update, gate-record, query, can-proceed, summary, checkpoint")

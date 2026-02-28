@@ -180,56 +180,40 @@ The agency is stack-agnostic. To use a different stack:
 
 ## Project Artifacts
 
-```
-project-root/
-├── .claude/
-│   └── hooks.json        # Project-level automated quality gates
-├── CLAUDE.md             # Project configuration (stack, conventions)
-├── docs/
-│   ├── PROJECT_BRIEF.md  # Phase 1 — PM
-│   ├── BACKLOG.md        # Phase 1 — PO
-│   ├── ARCHITECTURE.md   # Phase 2 — TL
-│   ├── VALIDATION.md     # Phase 3 — PM + TL
-│   ├── REVIEW.md         # Phase 5 — TL + QA
-│   ├── TEST_REPORT.md    # Phase 6 — QA
-│   └── API_REFERENCE.md  # Phase 7 — TL
-├── README.md             # Phase 7 — PM
-├── CHANGELOG.md          # Phase 7 — PM
-├── src/                  # Phase 4 — Dev
-└── tests/                # Phase 6 — QA
+```mermaid
+graph TD
+    Root["project-root/"]
+    Root --> claude[".claude/<br/>hooks.json"]
+    Root --> CMD["CLAUDE.md<br/><i>Project configuration</i>"]
+    Root --> docs["docs/"]
+    docs --> BRIEF["PROJECT_BRIEF.md<br/><i>Phase 1 — PM</i>"]
+    docs --> BACKLOG["BACKLOG.md<br/><i>Phase 1 — PO</i>"]
+    docs --> ARCH["ARCHITECTURE.md<br/><i>Phase 2 — TL</i>"]
+    docs --> VALID["VALIDATION.md<br/><i>Phase 3 — PM + TL</i>"]
+    docs --> REVIEW["REVIEW.md<br/><i>Phase 5 — TL + QA</i>"]
+    docs --> TEST["TEST_REPORT.md<br/><i>Phase 6 — QA</i>"]
+    docs --> APIREF["API_REFERENCE.md<br/><i>Phase 7 — TL</i>"]
+    Root --> README["README.md<br/><i>Phase 7 — PM</i>"]
+    Root --> CHANGELOG["CHANGELOG.md<br/><i>Phase 7 — PM</i>"]
+    Root --> src["src/<br/><i>Phase 4 — Dev</i>"]
+    Root --> tests["tests/<br/><i>Phase 6 — QA</i>"]
 ```
 
 ## Agency Files Location
 
 All agency infrastructure lives in the user's global Claude config directory:
 
-```
-~/.claude/                              (agency root)
-├── CLAUDE.md                           # User's global Claude instructions
-├── README_AGENCY.md                    # Comprehensive agency hand-off documentation
-├── skills/
-│   ├── pm/SKILL.md                     # PM agent definition
-│   ├── po/SKILL.md                     # PO agent definition
-│   ├── tl/SKILL.md                     # TL agent definition
-│   ├── dev/SKILL.md                    # Dev agent definition
-│   ├── qa/SKILL.md                     # QA agent definition
-│   ├── apply-progressive-disclosure/   # Context optimization utility
-│   │   ├── SKILL.md
-│   │   └── references/
-│   ├── project-map/                    # Multi-repo mapping orchestrator
-│   │   ├── SKILL.md
-│   │   └── references/
-│   └── repo-map/                       # Repository discovery & mapping
-│       ├── SKILL.md
-│       └── references/
-└── docs/
-    ├── USAGE_GUIDE.md                  # This file
-    └── templates/                      # Artifact templates used by agent skills
-        ├── PROJECT_BRIEF.md
-        ├── BACKLOG.md
-        ├── ARCHITECTURE.md
-        ├── VALIDATION.md
-        ├── REVIEW.md
-        ├── TEST_REPORT.md
-        └── API_REFERENCE.md
+```mermaid
+graph TD
+    Root["~/.claude/ <i>(agency root)</i>"]
+    Root --> CMD["CLAUDE.md<br/><i>User's global instructions</i>"]
+    Root --> AGENCY["README_AGENCY.md<br/><i>Agency hand-off docs</i>"]
+    Root --> skills["skills/"]
+    skills --> pm["pm/SKILL.md"] & po["po/SKILL.md"] & tl["tl/SKILL.md"] & dev["dev/SKILL.md"] & qa["qa/SKILL.md"]
+    skills --> apd["apply-progressive-disclosure/<br/>SKILL.md + references/"]
+    skills --> pmap["project-map/<br/>SKILL.md + references/"]
+    skills --> rmap["repo-map/<br/>SKILL.md + references/"]
+    Root --> docsDir["docs/"]
+    docsDir --> UG["USAGE_GUIDE.md<br/><i>This file</i>"]
+    docsDir --> templates["templates/<br/>PROJECT_BRIEF.md<br/>BACKLOG.md<br/>ARCHITECTURE.md<br/>VALIDATION.md<br/>REVIEW.md<br/>TEST_REPORT.md<br/>API_REFERENCE.md"]
 ```

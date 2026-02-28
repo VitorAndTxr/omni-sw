@@ -10,16 +10,12 @@ Only PO or PM can trigger migration (they have `create` permission).
 2. Initialize the new backlog: `python {script} init {BACKLOG_PATH}`
 3. Spawn a migration review team via `TeamCreate` with name `migrate-backlog-{project}`:
 
-```
-TeamCreate: "migrate-backlog-{project}"
-├── leader (po or pm) → coordinates, reviews migrated data, resolves conflicts
-├── reviewer (teammate, general-purpose) → reads old docs/BACKLOG.md, extracts stories
-│   For each story found: parse US-XXX, title, role/want/benefit, priority,
-│   acceptance criteria (Given/When/Then), notes, dependencies, feature area.
-│   Call backlog_manager.py create with --caller matching the leader's role.
-└── validator (teammate, general-purpose) → after reviewer finishes, reads the new
-    backlog.json via "list --format json", compares against old BACKLOG.md,
-    reports any missing stories, mismatched priorities, or lost acceptance criteria.
+```mermaid
+graph TD
+    team["TeamCreate: migrate-backlog-{project}"]
+    team --> leader["leader (po or pm)<br/><i>coordinates, reviews, resolves conflicts</i>"]
+    team --> reviewer["reviewer (general-purpose)<br/><i>reads old BACKLOG.md, extracts stories<br/>parses US-XXX, title, priority, ACs<br/>calls backlog_manager.py create</i>"]
+    team --> validator["validator (general-purpose)<br/><i>compares old vs new backlog<br/>reports missing stories, mismatched data</i>"]
 ```
 
 4. The **reviewer** teammate receives this prompt:

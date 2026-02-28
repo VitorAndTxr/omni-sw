@@ -133,10 +133,29 @@ Same model tier as standard mode — leads use the matrix model, assists use mat
 
 ### Incremental Flow
 
-```
-Feature A:  Implement ─────→ Review ────→ Test ─────→ ┐
-Feature B:  Implement ──→ Review ─→ Test ──→           ├─→ Document
-Feature C:        Implement ──────→ Review → Test ───→ ┘
+```mermaid
+gantt
+    title Parallel Feature Pipelines
+    dateFormat X
+    axisFormat %s
+
+    section Feature A
+    Implement :a1, 0, 3
+    Review    :a2, after a1, 2
+    Test      :a3, after a2, 2
+
+    section Feature B
+    Implement :b1, 0, 2
+    Review    :b2, after b1, 1
+    Test      :b3, after b2, 1
+
+    section Feature C
+    Implement :c1, 1, 4
+    Review    :c2, after c1, 1
+    Test      :c3, after c2, 2
+
+    section Global
+    Document  :milestone, after a3 c3, 0
 ```
 
 Each feature progresses independently through Implement→Review→Test.

@@ -114,23 +114,20 @@ Create or edit `.claude/hooks.json` in your project root:
    ```
 
 2. **Verify hooks directory structure:**
-   ```
-   project-root/
-   ├── .claude/
-   │   └── hooks.json          (register hooks here)
-   ├── scripts/
-   │   └── hooks/
-   │       ├── phase_sequence_guard.py
-   │       ├── pre_implement_guard.py
-   │       ├── pre_test_guard.py
-   │       └── pre_review_guard.py
-   ├── agent_docs/
-   │   └── agency/
-   │       └── STATE.json       (phase status tracking)
-   ├── docs/
-   │   ├── VALIDATION.md        (gate verdicts)
-   │   └── REVIEW.md            (review verdicts)
-   └── src/                      (implementation files)
+   ```mermaid
+   graph TD
+       Root["project-root/"]
+       Root --> claude[".claude/<br/>hooks.json"]
+       Root --> scripts["scripts/hooks/"]
+       scripts --> psg["phase_sequence_guard.py"]
+       scripts --> pig["pre_implement_guard.py"]
+       scripts --> ptg["pre_test_guard.py"]
+       scripts --> prg["pre_review_guard.py"]
+       Root --> agent["agent_docs/agency/<br/>STATE.json"]
+       Root --> docs["docs/"]
+       docs --> valid["VALIDATION.md<br/><i>gate verdicts</i>"]
+       docs --> review["REVIEW.md<br/><i>review verdicts</i>"]
+       Root --> src["src/<br/><i>implementation files</i>"]
    ```
 
 3. **Ensure STATE.json exists:**

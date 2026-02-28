@@ -22,10 +22,11 @@ Structured JSON-based backlog replacing the markdown template. All backlog data 
 
 ## File Layout
 
-```
-{project_root}/agent_docs/backlog/
-├── backlog.json    ← source of truth (structured data)
-└── BACKLOG.md      ← auto-generated readable summary
+```mermaid
+graph LR
+    dir["{project_root}/agent_docs/backlog/"]
+    dir --> json["backlog.json<br/><i>source of truth</i>"]
+    dir --> md["BACKLOG.md<br/><i>auto-generated summary</i>"]
 ```
 
 ## Script Resolution

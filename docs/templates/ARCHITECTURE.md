@@ -153,16 +153,13 @@ graph TB
 
 ## Project Structure
 
-```
-project-root/
-├── src/
-│   ├── Api/
-│   ├── Application/
-│   ├── Domain/
-│   └── Infrastructure/
-├── tests/
-│   ├── Unit/
-│   └── Integration/
-├── docs/
-└── docker-compose.yml
+```mermaid
+graph TD
+    Root["project-root/"]
+    Root --> src["src/"]
+    src --> Api & Application & Domain & Infrastructure
+    Root --> tests["tests/"]
+    tests --> Unit & Integration
+    Root --> docs["docs/"]
+    Root --> docker["docker-compose.yml"]
 ```

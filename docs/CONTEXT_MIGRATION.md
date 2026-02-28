@@ -31,21 +31,21 @@
 
 ## New File Structure
 
-```
-~/.claude/
-├── README_AGENCY.md                              (41 lines, 621 tokens — hub)
-└── docs/
-    └── agency/
-        ├── architecture-diagrams.md              (48 lines, 380 tokens)
-        ├── agent-reference.md                    (75 lines, 1,273 tokens)
-        ├── phase-walkthrough.md                  (143 lines, 1,716 tokens)
-        ├── artifact-map.md                       (73 lines, 994 tokens)
-        ├── claude-md-configuration.md            (27 lines, 565 tokens)
-        ├── hooks-system.md                       (72 lines, 690 tokens)
-        ├── templates.md                          (17 lines, 614 tokens)
-        ├── extending-the-agency.md               (72 lines, 1,054 tokens)
-        ├── known-limitations.md                  (23 lines, 512 tokens)
-        └── file-index.md                         (43 lines, 1,015 tokens)
+```mermaid
+graph TD
+    Root["~/.claude/"]
+    Root --> HUB["README_AGENCY.md<br/><i>41 lines, 621 tokens — hub</i>"]
+    Root --> docs["docs/agency/"]
+    docs --> arch["architecture-diagrams.md<br/><i>48 lines, 380 tokens</i>"]
+    docs --> agent["agent-reference.md<br/><i>75 lines, 1,273 tokens</i>"]
+    docs --> phase["phase-walkthrough.md<br/><i>143 lines, 1,716 tokens</i>"]
+    docs --> artifact["artifact-map.md<br/><i>73 lines, 994 tokens</i>"]
+    docs --> claude["claude-md-configuration.md<br/><i>27 lines, 565 tokens</i>"]
+    docs --> hooks["hooks-system.md<br/><i>72 lines, 690 tokens</i>"]
+    docs --> tmpl["templates.md<br/><i>17 lines, 614 tokens</i>"]
+    docs --> ext["extending-the-agency.md<br/><i>72 lines, 1,054 tokens</i>"]
+    docs --> lim["known-limitations.md<br/><i>23 lines, 512 tokens</i>"]
+    docs --> idx["file-index.md<br/><i>43 lines, 1,015 tokens</i>"]
 ```
 
 ## Verification Checklist

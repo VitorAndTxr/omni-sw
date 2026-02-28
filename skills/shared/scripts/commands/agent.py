@@ -104,12 +104,19 @@ def get_model(role: str, phase: str) -> str:
     return AGENT_MATRIX[key]["model"]
 
 
-def list_agents(phase: str) -> list[dict]:
-    """List all agents for a phase with full config."""
+def list_agents(phase: str, skip_assists: bool = False) -> list[dict]:
+    """List all agents for a phase with full config.
+
+    Args:
+        phase: Phase name.
+        skip_assists: If True, exclude assist agents (only return leads).
+    """
     phase = validate_phase(phase)
     agents = []
     for (p, role), info in AGENT_MATRIX.items():
         if p == phase:
+            if skip_assists and info["type"] == "assist":
+                continue
             agents.append({
                 "role": role,
                 "name": get_agent_name(role, phase, info["type"]),
@@ -168,8 +175,13 @@ def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
     return prompt
 
 
-def get_order(phase: str) -> list[dict]:
-    """Get execution order (waves) for a phase."""
+def get_order(phase: str, skip_assists: bool = False) -> list[dict]:
+    """Get execution order (waves) for a phase.
+
+    Args:
+        phase: Phase name.
+        skip_assists: If True, exclude assist agents from waves.
+    """
     phase = validate_phase(phase)
     if phase not in PHASE_ORDER:
         raise ValueError(f"Unknown phase: {phase}")
@@ -181,18 +193,22 @@ def get_order(phase: str) -> list[dict]:
             key = (phase, role)
             if key in AGENT_MATRIX:
                 info = AGENT_MATRIX[key]
+                if skip_assists and info["type"] == "assist":
+                    continue
                 wave_agents.append({
                     "role": role,
                     "name": get_agent_name(role, phase, info["type"]),
                     "model": info["model"],
                     "type": info["type"],
                 })
-        waves.append({
-            "wave": i + 1,
-            "parallel": len(wave_agents) > 1,
-            "agents": wave_agents,
-            "blocked_by": f"wave_{i}" if i > 0 else None,
-        })
+        # Only include wave if it has agents after filtering
+        if wave_agents:
+            waves.append({
+                "wave": i + 1,
+                "parallel": len(wave_agents) > 1,
+                "agents": wave_agents,
+                "blocked_by": f"wave_{i}" if i > 0 else None,
+            })
 
     return waves
 
@@ -221,8 +237,10 @@ def handle_agent(args: list[str]) -> dict | list | str:
     elif subcmd == "list":
         parser = argparse.ArgumentParser(prog="agency_cli agent list")
         parser.add_argument("--phase", required=True)
+        parser.add_argument("--skip-assists", action="store_true",
+                            help="Exclude assist agents (only return leads)")
         opts = parser.parse_args(args[1:])
-        return list_agents(opts.phase)
+        return list_agents(opts.phase, skip_assists=opts.skip_assists)
 
     elif subcmd == "prompt":
         parser = argparse.ArgumentParser(prog="agency_cli agent prompt")
@@ -254,8 +272,10 @@ def handle_agent(args: list[str]) -> dict | list | str:
     elif subcmd == "order":
         parser = argparse.ArgumentParser(prog="agency_cli agent order")
         parser.add_argument("--phase", required=True)
+        parser.add_argument("--skip-assists", action="store_true",
+                            help="Exclude assist agents from wave ordering")
         opts = parser.parse_args(args[1:])
-        return get_order(opts.phase)
+        return get_order(opts.phase, skip_assists=opts.skip_assists)
 
     else:
         raise ValueError(f"Unknown subcommand: {subcmd}")
