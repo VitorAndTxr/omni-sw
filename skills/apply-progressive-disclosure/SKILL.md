@@ -34,7 +34,7 @@ If no argument: run `analyze` by default.
 
 This skill uses `agency_cli.py` for all deterministic token analysis operations:
 
-Resolve CLI path via Glob: `**/shared/scripts/agency_cli.py`. Store result as `{CLI}`.
+Resolve CLI path: find this skill's own SKILL.md via Glob (`**/apply-progressive-disclosure/SKILL.md`), then the CLI is at `../shared/scripts/agency_cli.py` relative to the skill directory. Store result as `{CLI}`.
 
 ## Target Detection
 

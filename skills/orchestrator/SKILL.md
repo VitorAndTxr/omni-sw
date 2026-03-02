@@ -12,9 +12,6 @@ description: >-
   invoking each agent skill.
 argument-hint: <objective describing what to build>
 allowed-tools: Task, TaskOutput, Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, TaskCreate, TaskUpdate, TaskList, TeamCreate, TeamDelete, SendMessage
-context: fork
-agent: general-purpose
-disable-model-invocation: false
 ---
 
 # SDLC Orchestrator
@@ -23,6 +20,7 @@ You are the **Orchestrator**, the automated conductor of the Software Developmen
 
 ## Hard Constraints
 
+- **FIRST THING:** Run `init` (Steps 1–2 below) BEFORE any user interaction or questions. If `init` fails because CLAUDE.md is missing or hooks are not installed, tell the user to run `/init-omni-sw` first to configure the project, then re-run the orchestrator.
 - NEVER do the agents' work yourself. Always delegate to teammates spawned via `TeamCreate` + `Task` (with `team_name`).
 - NEVER skip phases or gates.
 - ALWAYS surface agent questions to the user via `AskUserQuestion` before continuing.
@@ -38,13 +36,19 @@ The `agency_cli.py` script handles all deterministic operations. **Use it for ev
 
 ### Step 1: Resolve CLI path
 
-Use the Glob tool to find `agency_cli.py`:
+Find this skill's own SKILL.md first, then derive the CLI path from it:
 
 ```
-Glob pattern: "**/shared/scripts/agency_cli.py"
+Glob pattern: "**/orchestrator/SKILL.md"
 ```
 
-Store the result as `CLI` for all subsequent commands.
+From the SKILL.md path, the CLI is at `../shared/scripts/agency_cli.py` relative to the `orchestrator/` directory. For example:
+- SKILL.md at: `/path/to/omni-sw/skills/orchestrator/SKILL.md`
+- CLI at: `/path/to/omni-sw/skills/shared/scripts/agency_cli.py`
+
+Verify it exists with `ls`, then store the resolved path as `{CLI}`.
+
+If not found, tell the user to run `/init-omni-sw` first and stop.
 
 ### Step 2: Initialize environment
 
@@ -52,9 +56,27 @@ Store the result as `CLI` for all subsequent commands.
 python {CLI} init --scan-root {workspace} --create-dirs
 ```
 
-This returns JSON with: `project_root`, `script_path`, `backlog_path`, `team_name`, `claude_md`. Parse the JSON output and store each value for use throughout the session.
+This returns JSON with: `project_root`, `script_path`, `backlog_path`, `team_name`, `claude_md`, `hooks`. Parse the JSON output and store each value for use throughout the session.
 
-Then initialize the state machine:
+### Step 2.1: Verify base files and hooks
+
+After parsing `init` output, verify the setup is complete. Check the `hooks` field in the response:
+
+- `"action": "created"` — Hooks were just installed for the first time. **Tell the user:**
+  > ⚠️ Notification hooks were installed in `.claude/hooks.json`. They will only activate in the **next session**. To activate now, run `/hooks` in Claude Code and approve the new hook, then re-run this command. Alternatively, you can continue without notifications — I will still send toast alerts via CLI before each question.
+- `"action": "merged"` — Hooks were added to an existing hooks.json. Same warning as above.
+- `"action": "already_installed"` — Hooks already existed. No action needed.
+- `"action": "error"` — Hook installation failed. Report the error to the user but continue (CLI notifications still work as fallback).
+
+Also verify these required fields from the `init` response:
+- `claude_md_exists` must be `true`. If `false`, warn the user: "No CLAUDE.md found — project context will be limited."
+- `backlog_exists` — if `false`, that's normal for new projects (backlog will be created during Plan phase).
+- `script_path` — if `null`, backlog API is unavailable. Warn: "backlog_manager.py not found. Story management will use file-based fallback."
+
+**Do NOT proceed to Step 3 if `init` returned an error.** Report the error and stop.
+
+### Step 2.2: Initialize state machine
+
 ```bash
 python {CLI} state init --project {project_name} --objective "{OBJECTIVE}" --state-path {PROJECT_ROOT}/agent_docs/agency/STATE.json
 ```
@@ -62,7 +84,7 @@ Store `{PROJECT_ROOT}/agent_docs/agency/STATE.json` as `STATE_PATH` for all subs
 
 ### Step 3: Complete setup
 
-After parsing `init` output:
+After all verifications pass:
 1. Read `CLAUDE.md` for project context (stack, conventions, domain).
 1.5. **Check for existing state:** `python {CLI} state query --state-path {STATE_PATH}`. If state exists and `status` is `in_progress`, the previous run may have crashed. Report current phase status to user and ask whether to resume from the last completed phase or restart.
 2. Create the team: `TeamCreate` with name from `team_name`.
@@ -250,15 +272,47 @@ python {CLI} backlog phase-transition --phase implement --caller dev --backlog-p
 
 Agents return questions prefixed with `[QUESTIONS]`. When detected:
 1. Parse all questions from the output.
-2. Present them via `AskUserQuestion`, attributing to source agent.
-3. Relay answers via `SendMessage` to the teammate.
+2. **Send notification:** `python {CLI} notify input-needed --agent <agent-name>`
+3. Present them via `AskUserQuestion`, attributing to source agent.
+4. Relay answers via `SendMessage` to the teammate.
+
+Call `notify input-needed` via CLI before printing questions — this sends a Windows toast so the user knows to check Claude Code.
+
+## Notifications (Windows)
+
+**Before every `AskUserQuestion`**, call the CLI to send a toast notification:
+```bash
+python {CLI} notify input-needed --agent <agent-name>
+```
+This sends a Windows toast so the user knows to check Claude Code.
+
+Other notification commands:
+
+```bash
+# When a phase completes:
+python {CLI} notify phase-complete --state-path {STATE_PATH} --phase <phase>
+
+# When the full SDLC completes:
+python {CLI} notify sdlc-complete --state-path {STATE_PATH}
+
+# Custom notification:
+python {CLI} notify send --title "Title" --message "Body"
+```
+
+**When to notify:**
+- After each `state update --status completed` + checkpoint → `notify phase-complete`
+- At cleanup (end of SDLC) → `notify sdlc-complete`
+- Input alerts are handled automatically by the installed hook.
+
+Notifications are non-blocking and silently skip on non-Windows systems.
 
 ## Cleanup
 
 1. Verify all tasks completed via `TaskList`.
 2. Delete the team via `TeamDelete`.
 3. Generate state summary: `python {CLI} state summary --state-path {STATE_PATH}`
-4. Print final summary: objective, artifacts, outstanding issues, gate iterations used.
+4. **Notify completion:** `python {CLI} notify sdlc-complete --state-path {STATE_PATH}`
+5. Print final summary: objective, artifacts, outstanding issues, gate iterations used.
 
 ## References
 

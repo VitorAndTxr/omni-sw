@@ -71,27 +71,43 @@ Gate phases enforce quality before progression: both PM and TL must APPROVE to p
 
 ### Configure a new project
 
-1. Copy the CLAUDE.md template to your project root:
-   ```bash
-   cp /path/to/omni-sw/docs/templates/CLAUDE_TEMPLATE.md ./CLAUDE.md
-   ```
+The fastest way is the `/omni-sw:init-omni-sw` skill, which handles the full configuration in one step:
 
-2. Fill in the sections:
-   - **Stack** — runtime, framework, database, testing framework
-   - **Conventions** — naming, project structure, error handling, logging
-   - **Domain Glossary** — ubiquitous language terms
-   - **Forbidden Patterns** — anti-patterns your team avoids
-   - **Agent Overrides** — per-role adjustments for this project
-
-3. Start a Claude Code session with the plugin loaded:
+1. Start a Claude Code session with the plugin loaded from your project directory:
    ```bash
    claude --plugin-dir /path/to/omni-sw
    ```
 
-4. Begin the workflow:
+2. Run the init skill:
    ```
-   /omni-sw:pm plan
+   /omni-sw:init-omni-sw
    ```
+
+   The skill detects whether the project directory is empty, has existing code, or already has a `CLAUDE.md`, and handles each case:
+   - **Empty directory** — asks for project name, stack, and type, then generates `CLAUDE.md`
+   - **Existing code without CLAUDE.md** — runs `/omni-sw:repo-map` to discover the stack, then creates `CLAUDE.md`
+   - **Existing CLAUDE.md** — skips creation and goes straight to directories and hooks
+
+3. Begin the workflow:
+   ```
+   /omni-sw:orchestrator "<objective>"
+   ```
+
+#### Manual setup
+
+If you prefer to configure manually, copy and fill in the CLAUDE.md template:
+
+```bash
+cp /path/to/omni-sw/docs/templates/CLAUDE_TEMPLATE.md ./CLAUDE.md
+```
+
+Fill in: **Stack**, **Conventions**, **Domain Glossary**, **Forbidden Patterns**, **Agent Overrides**.
+
+Then run setup to create directories and install hooks:
+
+```bash
+python /path/to/omni-sw/skills/shared/scripts/agency_cli.py setup --scan-root .
+```
 
 The agency is stack-agnostic. Agents read `CLAUDE.md` and adapt their output accordingly.
 
@@ -148,12 +164,53 @@ For quick experiments or simple features, a plain argument works too:
 - State tracking across all phases
 - `--skip-assists` flag for faster iteration on smaller projects
 
+## Notification system
+
+The agency sends Windows toast notifications to alert you when the orchestrator needs input or a workflow completes — so you don't have to watch the terminal.
+
+### How it works
+
+A `PreToolUse` hook on `AskUserQuestion` triggers `scripts/notify.py`, which fires a native Windows toast via PowerShell WinRT APIs. No third-party dependencies required. On non-Windows systems the script is a silent no-op.
+
+The `agency_cli notify` command is also used internally by agents for phase-complete and SDLC-complete toasts.
+
+### Activation
+
+`/omni-sw:init-omni-sw` installs the hook automatically. Hooks take effect at the start of the **next session** (or immediately if you run `/hooks` in Claude Code and approve the new entry).
+
+### Manual installation
+
+Copy the template to your project and replace the plugin path:
+
+```bash
+cp /path/to/omni-sw/scripts/hooks/hooks-template.json .claude/hooks.json
+# Edit .claude/hooks.json: replace <PLUGIN_PATH> with the absolute path to omni-sw
+```
+
+Or let `agency_cli` handle it:
+
+```bash
+python /path/to/omni-sw/skills/shared/scripts/agency_cli.py setup --scan-root . --no-hooks
+# then for hooks only:
+python /path/to/omni-sw/skills/shared/scripts/agency_cli.py init --scan-root .
+```
+
+### `agency_cli notify` subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `notify send --title <t> --message <m>` | Send an arbitrary toast |
+| `notify input-needed [--agent <name>]` | Alert that the orchestrator is waiting for input |
+| `notify phase-complete --state-path <p> --phase <name>` | Notify on phase completion with gate verdict |
+| `notify sdlc-complete --state-path <p>` | Notify on full SDLC completion with duration |
+
 ## Utility skills
 
 Standalone tools available at any point in the workflow.
 
 | Skill | Purpose | Guide |
 |-------|---------|-------|
+| `/omni-sw:init-omni-sw` | Configure a project directory for the agency — creates `CLAUDE.md`, `agent_docs/` directories, and installs notification hooks | — |
 | `/omni-sw:repo-map` | Scan a repository and produce architecture documentation with Mermaid diagrams | [repo-map.md](docs/guides/repo-map.md) |
 | `/omni-sw:project-map` | Discover and map all repositories in a multi-repo project | [project-map.md](docs/guides/project-map.md) |
 | `/omni-sw:apply-progressive-disclosure` | Analyze and optimize Claude Code config files for token efficiency | [apply-progressive-disclosure.md](docs/guides/apply-progressive-disclosure.md) |
@@ -167,7 +224,13 @@ All plugin infrastructure lives inside the plugin directory. Project artifacts l
 ```
 project-root/
 ├── CLAUDE.md                          # Project configuration (stack, conventions)
-├── .claude/hooks.json                 # Automated guardrails
+├── .claude/hooks.json                 # Automated guardrails (notification hook)
+├── agent_docs/
+│   ├── agency/
+│   │   ├── STATE.json                 # Orchestrator state machine
+│   │   └── CHECKPOINT.md             # Recovery point on session interruption
+│   └── backlog/
+│       └── backlog.json              # User story store
 ├── docs/
 │   ├── OBJECTIVE.md                   # Structured input for the orchestrator
 │   ├── PROJECT_BRIEF.md               # Phase 1 — PM
@@ -197,7 +260,8 @@ The agency enforces strict role boundaries:
 - **New agent:** Create `skills/<name>/SKILL.md` following the existing pattern.
 - **New phase:** Update each participating agent's skill file, create an artifact template, define gate conditions and feedback routes.
 - **New artifact:** Add a template in `docs/templates/`, update the producing agent's workflow.
-- **Hooks:** Edit `.claude/hooks.json` to add automated guardrails (lint reminders, commit guards, etc.).
+- **Hooks:** Edit `.claude/hooks.json` to add automated guardrails (lint reminders, commit guards, etc.). See `docs/agency/hooks-system.md`.
+- **New CLI command:** Add a module to `skills/shared/scripts/commands/` and register it in `agency_cli.py`.
 
 See `docs/agency/extending-the-agency.md` for detailed instructions.
 

@@ -1,0 +1,19 @@
+{
+  "_comment": "Copy this file to your project's .claude/hooks.json to enable automatic notifications.",
+  "_instructions": "Replace <PLUGIN_PATH> with the absolute path to the omni-sw plugin directory.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python <PLUGIN_PATH>/scripts/notify.py --hook",
+            "timeout": 10,
+            "description": "Send Windows toast notification when the orchestrator needs user input"
+          }
+        ]
+      }
+    ]
+  }
+}

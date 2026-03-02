@@ -19,7 +19,7 @@ Read-only codebase analysis skill. Discover every project under a scan root, ext
 
 This skill uses `agency_cli.py` for deterministic discovery, config extraction, and diagram generation:
 
-Resolve CLI path via Glob: `**/shared/scripts/agency_cli.py`. Store result as `{CLI}`.
+Resolve CLI path: find this skill's own SKILL.md via Glob (`**/repo-map/SKILL.md`), then the CLI is at `../shared/scripts/agency_cli.py` relative to the skill directory. Store result as `{CLI}`.
 
 ```bash
 # Discover repos (replaces manual Glob scanning)

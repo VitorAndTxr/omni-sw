@@ -2,7 +2,38 @@
 
 Automated guardrails that execute in response to Claude Code tool events. Hooks are project-level and defined in each project's `.claude/hooks.json`.
 
-## Current Hooks (example)
+## Agency notification hook
+
+The agency ships a built-in notification hook that fires a Windows toast whenever the orchestrator needs user input. It is installed automatically by `/omni-sw:init-omni-sw` or `agency_cli setup`.
+
+**Event:** `PreToolUse` on `AskUserQuestion`
+**Command:** `python "<plugin>/scripts/notify.py" --hook`
+**Behavior:** reads stdin (required by the hook protocol), sends a toast, exits 0 (never blocks the tool call).
+
+Template at `scripts/hooks/hooks-template.json` — replace `<PLUGIN_PATH>` before use:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python <PLUGIN_PATH>/scripts/notify.py --hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Hooks take effect at the start of the **next Claude Code session**. To activate immediately, run `/hooks` in Claude Code and approve the new entry.
+
+## Advisory hooks (examples)
 
 **PostToolUse -- Edit|Write matcher:**
 Triggers after any Edit or Write tool call. Checks if the file path ends in `.cs` or `.csproj`. If so, prints a reminder to stderr: `[hook:type-check] C# file changed -- consider running: dotnet build`. Exit code 0 (advisory only).

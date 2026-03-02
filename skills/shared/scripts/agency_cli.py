@@ -22,6 +22,8 @@ Commands:
     decision    Decision Log system (add, list, get, summary)
     pipeline    Feature-based parallel execution pipelines (group, agents, status, ready-for)
     metrics     Workflow observability (dashboard, stories, phase, export)
+    notify      Windows toast notifications (send, phase-complete, sdlc-complete, input-needed)
+    setup       Full project setup (CLAUDE.md, directories, hooks) — one-shot configuration
 """
 
 import sys
@@ -50,9 +52,12 @@ from commands.state import handle_state
 from commands.decision import handle_decision
 from commands.pipeline import handle_pipeline
 from commands.metrics import handle_metrics
+from commands.notify import handle_notify
+from commands.setup import handle_setup
 
 COMMANDS = {
     "init": handle_init,
+    "setup": handle_setup,
     "phase": handle_phase,
     "gate": handle_gate,
     "agent": handle_agent,
@@ -65,6 +70,7 @@ COMMANDS = {
     "decision": handle_decision,
     "pipeline": handle_pipeline,
     "metrics": handle_metrics,
+    "notify": handle_notify,
 }
 
 

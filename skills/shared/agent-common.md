@@ -4,13 +4,15 @@ Shared setup for all agency agents (PM, PO, TL, Dev, QA). Each agent's SKILL.md 
 
 ## Agency CLI
 
-The `agency_cli.py` script handles all deterministic operations (path resolution, model lookup, phase routing, gate parsing, batch transitions, token analysis). Resolve its path once per session:
+The `agency_cli.py` script handles all deterministic operations (path resolution, model lookup, phase routing, gate parsing, batch transitions, token analysis).
+
+If the orchestrator provided `CLI_PATH` in your spawn prompt, use it directly as `{CLI}`. Otherwise, find this skill's own SKILL.md and derive the CLI path:
 
 ```
-Glob pattern: "**/shared/scripts/agency_cli.py"
+Glob pattern: "**/<your-skill-name>/SKILL.md"
 ```
 
-Store the result as `{CLI}`. If the orchestrator provided `CLI_PATH` in your spawn prompt, use it directly.
+The CLI is always at `../shared/scripts/agency_cli.py` relative to your skill's directory. Verify it exists, then store as `{CLI}`.
 
 ## Project Root Resolution
 
