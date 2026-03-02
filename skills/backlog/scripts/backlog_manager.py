@@ -406,11 +406,14 @@ def cmd_render(args):
                 lines.append("**Acceptance Criteria:**")
                 lines.append("")
                 for ac in s["acceptance_criteria"]:
-                    ac_id = ac.get("id", "-")
-                    given = ac.get("given", "...")
-                    when = ac.get("when", "...")
-                    then = ac.get("then", "...")
-                    lines.append(f"- **{ac_id}:** Given *{given}*, when *{when}*, then *{then}*")
+                    if isinstance(ac, str):
+                        lines.append(f"- {ac}")
+                    else:
+                        ac_id = ac.get("id", "-")
+                        given = ac.get("given", "...")
+                        when = ac.get("when", "...")
+                        then = ac.get("then", "...")
+                        lines.append(f"- **{ac_id}:** Given *{given}*, when *{when}*, then *{then}*")
                 lines.append("")
             if s.get("notes"):
                 lines.append(f"**Notes:** {s['notes']}")
