@@ -63,16 +63,20 @@ def install_hooks(project_root: str) -> dict:
     Non-destructive: if hooks.json already exists, merges the AskUserQuestion
     hook into the existing PreToolUse array without duplicating or overwriting
     other hooks.
+
+    Uses agency_cli notify input-needed instead of notify.py --hook to avoid
+    stdin blocking issues. The CLI command sends a toast directly without
+    needing to read hook JSON from stdin.
     """
     plugin_root = get_plugin_root()
-    notify_script = os.path.join(plugin_root, "scripts", "notify.py")
+    cli_script = os.path.join(plugin_root, "skills", "shared", "scripts", "agency_cli.py")
 
-    # Normalize path separators for the command string
-    notify_script_cmd = notify_script.replace("\\", "/")
+    # Normalize path separators for bash on Windows
+    cli_script_cmd = cli_script.replace("\\", "/")
 
     hook_entry = {
         "type": "command",
-        "command": f"python \"{notify_script_cmd}\" --hook",
+        "command": f"python \"{cli_script_cmd}\" notify input-needed",
         "timeout": 10
     }
 

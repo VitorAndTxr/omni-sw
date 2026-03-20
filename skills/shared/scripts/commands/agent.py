@@ -130,9 +130,20 @@ def list_agents(phase: str, skip_assists: bool = False) -> list[dict]:
     return agents
 
 
+def _bash_path(path: str) -> str:
+    """Normalize a path for bash on Windows: forward slashes, no trailing slash."""
+    if not path:
+        return path
+    return path.replace("\\", "/").rstrip("/")
+
+
 def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
-                    backlog_path: str, objective: str, agent_type: str = None) -> str:
-    """Generate the full agent spawn prompt."""
+                    backlog_path: str, objective: str, agent_type: str = None,
+                    cli_path: str = None, state_path: str = None) -> str:
+    """Generate the full agent spawn prompt.
+
+    All paths are normalized to forward slashes for bash compatibility on Windows.
+    """
     role = validate_role(role)
     phase = validate_phase(phase)
     key = (phase, role)
@@ -143,14 +154,31 @@ def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
     atype = agent_type or info["type"]
     skill_cmd = info["skill"]
 
+    # Normalize all paths for bash
+    project_root = _bash_path(project_root)
+    script_path = _bash_path(script_path)
+    backlog_path = _bash_path(backlog_path)
+    cli_path = _bash_path(cli_path) if cli_path else None
+    state_path = _bash_path(state_path) if state_path else None
+
+    # Build environment block with all resolved paths
+    env_lines = [
+        f"PROJECT_ROOT={project_root}",
+        f"SCRIPT_PATH={script_path}",
+        f"BACKLOG_PATH={backlog_path}",
+    ]
+    if cli_path:
+        env_lines.append(f"CLI_PATH={cli_path}")
+    if state_path:
+        env_lines.append(f"STATE_PATH={state_path}")
+    env_block = " | ".join(env_lines)
+
     if atype == "lead":
         prompt = (
             f"You are the {role.upper()}. Invoke the `{skill_cmd}` skill. "
             f"The project objective is: {objective}. "
-            f"The project root is: {project_root}. "
-            f"The backlog script is at: {script_path}. "
-            f"The backlog path is: {backlog_path}. "
-            f"Read CLAUDE.md for context. "
+            f"Resolved paths (use these directly, do NOT re-resolve via Glob): {env_block}. "
+            f"Read CLAUDE.md at {project_root}/CLAUDE.md for context. "
             f"If you need clarification, list all questions prefixed with [QUESTIONS]. "
             f"Do NOT use AskUserQuestion -- return questions to me. "
             f"When done, mark your task as completed via TaskUpdate."
@@ -163,10 +191,8 @@ def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
         prompt = (
             f"You are the {role.upper()} assist. Invoke the `{skill_cmd}` skill. "
             f"The project objective is: {objective}. "
-            f"The project root is: {project_root}. "
-            f"The backlog script is at: {script_path}. "
-            f"The backlog path is: {backlog_path}. "
-            f"Read CLAUDE.md for context. "
+            f"Resolved paths (use these directly, do NOT re-resolve via Glob): {env_block}. "
+            f"Read CLAUDE.md at {project_root}/CLAUDE.md for context. "
             f"Provide your [NOTES] and review findings. "
             f"Do NOT use AskUserQuestion -- return questions to me. "
             f"When done, mark your task as completed via TaskUpdate."
@@ -253,6 +279,10 @@ def handle_agent(args: list[str]) -> dict | list | str:
         parser.add_argument("--objective-stdin", action="store_true",
                             help="Read objective from stdin (avoids shell escaping issues)")
         parser.add_argument("--type", choices=["lead", "assist"], default=None)
+        parser.add_argument("--cli-path", required=False, default=None,
+                            help="Path to agency_cli.py (auto-derived if omitted)")
+        parser.add_argument("--state-path", required=False, default=None,
+                            help="Path to STATE.json")
         opts = parser.parse_args(args[1:])
         if opts.objective_stdin:
             import sys as _sys
@@ -261,9 +291,14 @@ def handle_agent(args: list[str]) -> dict | list | str:
             objective = opts.objective
         else:
             raise ValueError("Either --objective or --objective-stdin is required")
+        # Auto-derive CLI path if not provided
+        cli_path = opts.cli_path or os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "agency_cli.py")
+        )
         prompt = generate_prompt(
             opts.role, opts.phase, opts.project_root,
-            opts.script_path, opts.backlog_path, objective, opts.type
+            opts.script_path, opts.backlog_path, objective, opts.type,
+            cli_path=cli_path, state_path=opts.state_path,
         )
         return {"prompt": prompt, "model": get_model(opts.role, opts.phase),
                 "name": get_agent_name(opts.role, opts.phase,

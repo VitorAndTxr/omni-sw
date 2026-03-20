@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python <PLUGIN_PATH>/scripts/notify.py --hook",
+            "command": "python <PLUGIN_PATH>/skills/shared/scripts/agency_cli.py notify input-needed",
             "timeout": 10,
             "description": "Send Windows toast notification when the orchestrator needs user input"
           }

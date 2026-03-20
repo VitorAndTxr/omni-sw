@@ -133,10 +133,29 @@ def handle_hook_mode():
     the orchestrator needs input. The actual question appears in the Claude
     Code chat, so the notification is just an alert to check the terminal.
     Does not block the tool call (exit 0).
+
+    NOTE: Prefer using `agency_cli notify input-needed` instead of this mode.
+    The CLI command doesn't need stdin and avoids potential blocking issues.
     """
     try:
-        # Consume stdin (required by hook protocol) but don't use content
-        sys.stdin.read()
+        # Consume stdin non-blocking: read available data but don't wait for EOF.
+        # This prevents hanging if the hook runner doesn't close the pipe promptly.
+        import select
+        if hasattr(select, 'select') and sys.stdin.readable():
+            try:
+                # On Windows, select doesn't work on stdin, so use a try/read approach
+                if is_windows():
+                    import msvcrt
+                    # Just drain whatever is available, don't block
+                    while msvcrt.kbhit():
+                        msvcrt.getch()
+                else:
+                    ready, _, _ = select.select([sys.stdin], [], [], 1.0)
+                    if ready:
+                        sys.stdin.read()
+            except (OSError, ValueError):
+                pass
+
         send_notification(
             "🏗️ Agency — Input Needed",
             "The orchestrator is waiting for your input. Check Claude Code."

@@ -2,28 +2,32 @@
 
 Shared setup for all agency agents (PM, PO, TL, Dev, QA). Each agent's SKILL.md references this file.
 
-## Agency CLI
+## Resolved Paths (from Orchestrator)
 
-The `agency_cli.py` script handles all deterministic operations (path resolution, model lookup, phase routing, gate parsing, batch transitions, token analysis).
+When spawned by the orchestrator, your prompt includes all resolved paths in a `Resolved paths:` block. Parse and use them directly:
 
-If the orchestrator provided `CLI_PATH` in your spawn prompt, use it directly as `{CLI}`. Otherwise, find this skill's own SKILL.md and derive the CLI path:
+- `PROJECT_ROOT` — project root directory (all artifact paths are relative to this)
+- `SCRIPT_PATH` — absolute path to `backlog_manager.py`
+- `BACKLOG_PATH` — absolute path to `backlog.json`
+- `CLI_PATH` — absolute path to `agency_cli.py`
+- `STATE_PATH` — absolute path to `STATE.json`
+
+**Do NOT re-resolve these via Glob.** The orchestrator already normalized them for bash.
+
+### Fallback (standalone usage only)
+
+If spawned without resolved paths (e.g., manual `/pm plan` invocation), find the CLI once:
 
 ```
-Glob pattern: "**/<your-skill-name>/SKILL.md"
+Glob pattern: "**/shared/scripts/agency_cli.py"
 ```
 
-The CLI is always at `../shared/scripts/agency_cli.py` relative to your skill's directory. Verify it exists, then store as `{CLI}`.
-
-## Project Root Resolution
-
-If the orchestrator provided `PROJECT_ROOT`, `SCRIPT_PATH`, and `BACKLOG_PATH` in your spawn prompt, use those directly. Otherwise, resolve once via CLI:
+Store as `{CLI}`, then resolve all other paths:
 
 ```bash
-python {CLI} init --scan-root {workspace}
+python "{CLI}" init --scan-root {workspace}
 # Returns JSON: project_root, script_path, backlog_path, team_name, claude_md
 ```
-
-All artifact paths (`docs/`, `src/`, `tests/`) are relative to the project root.
 
 ## Backlog Integration
 
@@ -31,14 +35,21 @@ All artifact paths (`docs/`, `src/`, `tests/`) are relative to the project root.
 
 Pass `--caller <agent>` on every command. The script rejects unauthorized operations.
 
+### Using the backlog script
+
+```bash
+# Always use the resolved SCRIPT_PATH and BACKLOG_PATH from your spawn prompt
+python "{SCRIPT_PATH}" <command> "{BACKLOG_PATH}" [options] --caller {role}
+```
+
 For batch transitions (e.g., transitioning all stories for a phase):
 ```bash
-python {CLI} backlog phase-transition --phase {phase} --caller {role} --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH}
+python "{CLI_PATH}" backlog phase-transition --phase {phase} --caller {role} --backlog-path "{BACKLOG_PATH}" --script-path "{SCRIPT_PATH}"
 ```
 
 To validate a transition before executing:
 ```bash
-python {CLI} backlog validate-transition --from "Ready" --to "In Design"
+python "{CLI_PATH}" backlog validate-transition --from "Ready" --to "In Design"
 ```
 
 ### Permission Matrix
@@ -68,15 +79,7 @@ All agents must update the project state when starting and completing phase work
 Before doing any phase work, update state:
 
 ```bash
-python {CLI} state update --state-path {STATE_PATH} --phase {current_phase} --status in_progress --agent {agent_name} --agent-status in_progress
-```
-
-Where `{STATE_PATH}` is `{project_root}/agent_docs/agency/STATE.json`. If the orchestrator provided `STATE_PATH` in your spawn prompt, use it directly. Otherwise derive it from project root.
-
-If STATE.json doesn't exist yet, the first agent (typically pm-plan via orchestrator) should initialize it:
-
-```bash
-python {CLI} state init --project {project_name} --objective "{objective}" --state-path {STATE_PATH}
+python "{CLI_PATH}" state update --state-path "{STATE_PATH}" --phase {current_phase} --status in_progress --agent {agent_name} --agent-status in_progress
 ```
 
 ### On Phase Completion
@@ -84,7 +87,7 @@ python {CLI} state init --project {project_name} --objective "{objective}" --sta
 After producing all artifacts for your phase:
 
 ```bash
-python {CLI} state update --state-path {STATE_PATH} --phase {current_phase} --status completed --agent {agent_name} --agent-status completed
+python "{CLI_PATH}" state update --state-path "{STATE_PATH}" --phase {current_phase} --status completed --agent {agent_name} --agent-status completed
 ```
 
 ### On Gate Verdict (Gate phases only: validate, review, test)
@@ -93,13 +96,13 @@ After writing your verdict, record it in state:
 
 ```bash
 # Validate (PM or TL):
-python {CLI} state gate-record --state-path {STATE_PATH} --phase validate --verdict "APPROVED" --pm APPROVED --tl APPROVED
+python "{CLI_PATH}" state gate-record --state-path "{STATE_PATH}" --phase validate --verdict "APPROVED" --pm APPROVED --tl APPROVED
 
 # Review (TL):
-python {CLI} state gate-record --state-path {STATE_PATH} --phase review --verdict PASS
+python "{CLI_PATH}" state gate-record --state-path "{STATE_PATH}" --phase review --verdict PASS
 
 # Test (QA):
-python {CLI} state gate-record --state-path {STATE_PATH} --phase test --verdict PASS --tests-passed 42 --tests-failed 0
+python "{CLI_PATH}" state gate-record --state-path "{STATE_PATH}" --phase test --verdict PASS --tests-passed 42 --tests-failed 0
 ```
 
 ### Important Rules
@@ -113,7 +116,7 @@ python {CLI} state gate-record --state-path {STATE_PATH} --phase test --verdict 
 When making significant design decisions, trade-offs, or choosing between alternatives, record them:
 
 ```bash
-python {CLI} decision add --decisions-path {project_root}/docs/DECISIONS.md --phase {phase} --agent {role} --title "Short decision title" --context "Why this decision was needed" --alternatives "Option A (rejected: reason), Option B (rejected: reason)" --decision "What was decided" --impact "Affected stories or components"
+python "{CLI_PATH}" decision add --decisions-path "{PROJECT_ROOT}/docs/DECISIONS.md" --phase {phase} --agent {role} --title "Short decision title" --context "Why this decision was needed" --alternatives "Option A (rejected: reason), Option B (rejected: reason)" --decision "What was decided" --impact "Affected stories or components"
 ```
 
 ### When to Record Decisions

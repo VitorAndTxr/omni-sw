@@ -246,6 +246,9 @@ def prepare_phase(args: list[str]) -> dict:
         get_agent_name, generate_prompt, validate_phase as agent_validate_phase
     )
 
+    # Derive CLI path from this script's own location
+    cli_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "agency_cli.py"))
+
     waves = []
     for i, wave_roles in enumerate(PHASE_ORDER.get(phase, [])):
         wave_agents = []
@@ -262,7 +265,8 @@ def prepare_phase(args: list[str]) -> dict:
             agent_name = get_agent_name(role, phase, info["type"])
             prompt = generate_prompt(
                 role, phase, opts.project_root,
-                opts.script_path, opts.backlog_path, objective, info["type"]
+                opts.script_path, opts.backlog_path, objective, info["type"],
+                cli_path=cli_path, state_path=opts.state_path,
             )
 
             wave_agents.append({
@@ -285,7 +289,7 @@ def prepare_phase(args: list[str]) -> dict:
     info = PHASE_INFO[phase]
     artifacts = []
     for artifact in info["artifacts"]:
-        abs_path = os.path.join(opts.project_root, artifact)
+        abs_path = os.path.join(opts.project_root, artifact).replace("\\", "/")
         artifacts.append({
             "relative": artifact,
             "absolute": abs_path,

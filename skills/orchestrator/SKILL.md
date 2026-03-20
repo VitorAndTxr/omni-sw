@@ -112,7 +112,7 @@ Each phase is self-contained: prepare → spawn → work → shutdown → checkp
    ```
    If `ready` is false, report the blocker to the user and do NOT proceed.
 
-2. **Spawn agents** from the `waves` array in the response. Each wave entry includes full prompts:
+2. **Spawn agents** from the `waves` array in the response. Each wave entry includes full prompts with all resolved paths (PROJECT_ROOT, SCRIPT_PATH, BACKLOG_PATH, CLI_PATH, STATE_PATH) already embedded — agents do NOT need to re-resolve paths via Glob:
    ```
    Task(
      subagent_type: "general-purpose",
