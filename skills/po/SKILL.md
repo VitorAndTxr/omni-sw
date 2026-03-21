@@ -53,8 +53,19 @@ Break down project brief into actionable user stories.
    python {SCRIPT} create {BACKLOG_PATH} --id <id> --title "..." --role "..." --want "..." --benefit "..." --feature "..." --priority Must --caller po --ac '[...]' --depends "..."
    ```
 4. Clarify ambiguous rules via AskUserQuestion. Log open questions: `python {SCRIPT} question {BACKLOG_PATH} --text "..." --caller po`
-5. Mark stories Ready, render BACKLOG.md (once after all mutations).
-6. Instruct user to proceed to `/tl design`.
+5. Transition all stories to Ready:
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "Ready" --caller po
+   ```
+   Or use batch transition via CLI:
+   ```bash
+   python "{CLI_PATH}" backlog phase-transition --phase plan --caller po --backlog-path "{BACKLOG_PATH}" --script-path "{SCRIPT_PATH}"
+   ```
+6. Render BACKLOG.md (once after all mutations):
+   ```bash
+   python {SCRIPT} render {BACKLOG_PATH}
+   ```
+7. Instruct user to proceed to `/tl design`.
 
 **Output:** `agent_docs/backlog/backlog.json` + `agent_docs/backlog/BACKLOG.md`
 
@@ -66,7 +77,16 @@ Break down project brief into actionable user stories.
 
 ## Phase: Validate (`/po validate`) — ASSISTS
 
-Review design for business rule compliance. Read `{DOCS_PATH}/ARCHITECTURE.md`, query backlog stories in design, verify every story has implementation path, no ACs contradicted, business rules correctly represented. Add review notes to `{DOCS_PATH}/VALIDATION.md` under "Product Owner Review" section.
+Review design for business rule compliance.
+
+**Workflow:**
+1. Read `{DOCS_PATH}/ARCHITECTURE.md`.
+2. Query backlog stories in design:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status "In Design" --fields id,title,acceptance_criteria,dependencies --format json --caller po
+   ```
+3. Verify every story has implementation path, no ACs contradicted, business rules correctly represented.
+4. Add review notes to `{DOCS_PATH}/VALIDATION.md` under "Product Owner Review" section.
 
 **Allowed tools:** Read, Write, Edit, Bash
 
@@ -74,6 +94,15 @@ Review design for business rule compliance. Read `{DOCS_PATH}/ARCHITECTURE.md`, 
 
 ## Phase: Document (`/po document`) — ASSISTS
 
-Review documentation for business accuracy. Read `README.md` and `CHANGELOG.md`, query delivered stories, verify all features accurately described, terminology consistent with `CLAUDE.md` domain glossary. Suggest corrections via edits.
+Review documentation for business accuracy.
+
+**Workflow:**
+1. Read `README.md` and `CHANGELOG.md`.
+2. Query delivered stories:
+   ```bash
+   python {SCRIPT} list {BACKLOG_PATH} --status Done --fields id,title,feature_area --format summary --caller po
+   ```
+3. Verify all features accurately described, terminology consistent with `CLAUDE.md` domain glossary.
+4. Suggest corrections via edits.
 
 **Allowed tools:** Read, Edit, Bash, Glob, Grep

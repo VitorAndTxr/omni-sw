@@ -38,7 +38,14 @@ Lead design phase. Produce comprehensive architecture document.
 1. Read `{DOCS_PATH}/PROJECT_BRIEF.md`.
 2. Query backlog: `python {SCRIPT} list {BACKLOG_PATH} --status Ready --format json`
 3. Read `CLAUDE.md` for stack, conventions, forbidden patterns.
-4. Update story statuses to "In Design": `python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Design" --caller tl`
+4. Update story statuses to "In Design":
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Design" --caller tl
+   ```
+   Or use batch transition via CLI:
+   ```bash
+   python "{CLI_PATH}" backlog phase-transition --phase design --caller tl --backlog-path "{BACKLOG_PATH}" --script-path "{SCRIPT_PATH}"
+   ```
 5. **Optional:** Spawn dev/qa teammates for implementability/testability review.
 6. Design and document: System Overview (Mermaid), Tech Stack, Data Models (ERD), API Contracts, Component Architecture, Error Handling Strategy, Security Considerations, Project Structure.
 7. Produce `{DOCS_PATH}/ARCHITECTURE.md` following template in `~/.claude/docs/templates/ARCHITECTURE.md`.
@@ -51,7 +58,10 @@ Lead design phase. Produce comprehensive architecture document.
    | qa-design-assist | Missing testable interface for auth | Incorporated | Added IAuthService interface |
    ```
    Dispositions: **Incorporated**, **Rejected**, **Deferred**. Every point must have a rationale.
-9. Render updated backlog (once after all transitions).
+9. Render updated backlog (once after all transitions):
+   ```bash
+   python {SCRIPT} render {BACKLOG_PATH}
+   ```
 10. Instruct user to run Validate: `/pm validate` and `/tl validate`.
 
 **Output:** `{DOCS_PATH}/ARCHITECTURE.md`
@@ -70,9 +80,20 @@ Lead technical validation gate. Assess whether design is feasible and sound.
 3. Read `CLAUDE.md` for stack constraints.
 4. Evaluate: feasibility, scalability, security, testability, error handling, structure.
 5. Produce verdict: **APPROVED** or **REPROVED** with rationale.
-6. If APPROVED, transition stories to Validated. Write technical validation section in `{DOCS_PATH}/VALIDATION.md`.
-7. Render updated backlog (once after all transitions).
-8. If REPROVED: specify changes, instruct user to go back to `/tl design`.
+6. If APPROVED, transition stories to Validated:
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "Validated" --caller tl
+   ```
+   Or use batch transition via CLI:
+   ```bash
+   python "{CLI_PATH}" backlog phase-transition --phase validate --caller tl --backlog-path "{BACKLOG_PATH}" --script-path "{SCRIPT_PATH}"
+   ```
+7. Write technical validation section in `{DOCS_PATH}/VALIDATION.md`.
+8. Render updated backlog (once after all transitions):
+   ```bash
+   python {SCRIPT} render {BACKLOG_PATH}
+   ```
+9. If REPROVED: specify changes, instruct user to go back to `/tl design`.
 
 **Output:** Technical validation section in `{DOCS_PATH}/VALIDATION.md`
 
@@ -99,7 +120,12 @@ Lead code review phase. Produce structured review.
 4. Review for: architecture compliance, code quality, security, error handling, performance, convention adherence (`CLAUDE.md`).
 5. Produce `{DOCS_PATH}/REVIEW.md` following template. Categorize issues as **blocking** or **suggestion**.
 6. **Feedback Integration:** If qa-review-assist provided findings, add a `## QA Feedback Integration` section to REVIEW.md with the same table format, documenting how each QA observation was handled in the review.
-7. If blocking issues: transition stories back to "In Progress", instruct user to run `/dev implement`.
+7. If blocking issues: transition affected stories back to "In Progress" and render:
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Progress" --caller tl
+   python {SCRIPT} render {BACKLOG_PATH}
+   ```
+   Instruct user to run `/dev implement`.
 8. If no blocking issues: instruct user to proceed to `/qa test`.
 
 **Output:** `{DOCS_PATH}/REVIEW.md`

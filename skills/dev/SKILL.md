@@ -46,10 +46,20 @@ Lead implementation. Write production code that faithfully implements the approv
 3. Read `CLAUDE.md` — follow all conventions, patterns, forbidden pattern restrictions.
 4. Read `{DOCS_PATH}/VALIDATION.md` — understand conditions from validation gate.
 5. If `{DOCS_PATH}/REVIEW.md` exists (re-implementation after review): read it and address all **blocking** issues. Also query "In Progress" stories.
-6. Transition stories to "In Progress": `python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Progress" --caller dev`
+6. Transition stories to "In Progress":
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Progress" --caller dev
+   ```
+   Or use batch transition via CLI:
+   ```bash
+   python "{CLI_PATH}" backlog phase-transition --phase implement --caller dev --backlog-path "{BACKLOG_PATH}" --script-path "{SCRIPT_PATH}"
+   ```
 7. Implement: project structure, data models, business logic, API endpoints, error handling — following `CLAUDE.md` conventions.
 8. After each story, transition to "In Review": `python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Review" --caller dev`
-9. Render updated backlog (once after all transitions).
+9. Render updated backlog (once after all transitions):
+   ```bash
+   python {SCRIPT} render {BACKLOG_PATH}
+   ```
 10. Instruct user to proceed to Review: `/tl review`.
 
 **Important rules:**
