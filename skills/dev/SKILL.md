@@ -22,7 +22,7 @@ For project root resolution, backlog integration, and phase routing: read `share
 
 ## Phase: Plan (`/dev plan`) — ASSISTS
 
-Identify domain-specific technical requirements and implementation risks. Read `docs/PROJECT_BRIEF.md` and `CLAUDE.md`. Assess: library/framework risks, external dependencies, underspecified requirements from implementation standpoint. Provide specialist notes to PM.
+Identify domain-specific technical requirements and implementation risks. Read `{DOCS_PATH}/PROJECT_BRIEF.md` and `CLAUDE.md`. Assess: library/framework risks, external dependencies, underspecified requirements from implementation standpoint. Provide specialist notes to PM.
 
 **Allowed tools:** Read, Edit, Write, Glob, Grep, WebSearch
 

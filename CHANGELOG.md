@@ -5,6 +5,35 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.6.0] — 2026-03-21
+
+### Added
+
+- **Timestamped document storage:** Phase artifacts now written to `agent_docs/<short-desc>-<YYYY_MM_DD_HH_MM>/` per SDLC run, isolating working documents across runs. `docs/` reserved for maintained descriptive documentation (architecture overview, flow diagrams).
+- `DOCS_PATH` resolved path injected into all agent prompts via the environment block, alongside existing `PROJECT_ROOT`, `SCRIPT_PATH`, etc.
+- `state init` accepts `--project-root` and `--short-description` to create the timestamped subfolder. Short description auto-derived from objective when omitted.
+- `resolve_artifact_path()` in `phase.py` dynamically maps `docs/` artifact templates to the current run's `DOCS_PATH`.
+- `get_docs_path()` helper in `state.py` with backward-compatible fallback to `docs/` when STATE.json has no `docs_path` field.
+
+### Fixed
+
+- **`backlog_cmd.py` `query_by_profile()`:** Was passing `backlog_path` twice (once in cmd list, once appended by `run_backlog_cmd`), causing every `agency_cli backlog query` call to crash.
+- **`backlog_cmd.py` `run_backlog_cmd()`:** Argument order fixed — `backlog_path` now inserted right after subcommand name per `backlog_manager.py` parser expectations.
+- **`init_cmd.py` `find_backlog_script()`:** Glob results now sorted by path length to prefer the closest match to scan root.
+- **`init_cmd.py` `handle_init()`:** All output paths normalized to forward slashes for bash on Windows.
+- **`init_cmd.py` `install_hooks()`:** Hook command now uses `sys.executable` (resolved at install time) instead of bare `python`, fixing hook failures when Python is not on PATH in the hook runner context.
+- **`pre_implement_guard.py`:** Now reads `docs_path` from STATE.json instead of hardcoding `docs/VALIDATION.md`.
+
+### Changed
+
+- STATE.json version bumped to `1.1` with new `docs_path` field.
+- All agent skills (PM, PO, TL, Dev, QA) reference `{DOCS_PATH}/` instead of `docs/` for phase artifacts.
+- Orchestrator gate parse commands, report commands, and decision log path use `{DOCS_PATH}`.
+- PM/TL Document phase updated to maintain `docs/` with descriptive documentation (architecture overview, diagrams) for human consumption.
+- Checkpoint artifact inventory resolves through dynamic `docs_path`.
+
+---
+
 ## [0.5.1] — 2026-02-27
 
 ### Added

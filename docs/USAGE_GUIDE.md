@@ -21,8 +21,8 @@ Run the phases in order. Each command invokes the agent in the specified phase m
 ### Phase 1: Plan
 
 ```
-/pm plan       → Produces docs/PROJECT_BRIEF.md (leads)
-/po plan       → Produces docs/BACKLOG.md (assists PM, produces backlog)
+/pm plan       → Produces {DOCS_PATH}/PROJECT_BRIEF.md (leads)
+/po plan       → Creates backlog (assists PM, produces user stories)
 /tl plan       → Adds technical risk assessment to brief (assists)
 /dev plan      → Adds specialist notes to brief (assists)
 /qa plan       → Adds testability notes to brief (assists)
@@ -33,7 +33,7 @@ Run the phases in order. Each command invokes the agent in the specified phase m
 ### Phase 2: Design
 
 ```
-/tl design     → Produces docs/ARCHITECTURE.md (leads)
+/tl design     → Produces {DOCS_PATH}/ARCHITECTURE.md (leads)
 /dev design    → Reviews architecture for implementability (assists)
 /qa design     → Reviews architecture for testability (assists)
 ```
@@ -43,9 +43,9 @@ Run the phases in order. Each command invokes the agent in the specified phase m
 ### Phase 3: Validate (Dual Gate)
 
 ```
-/pm validate   → Business validation in docs/VALIDATION.md (leads business)
+/pm validate   → Business validation in {DOCS_PATH}/VALIDATION.md (leads business)
 /po validate   → Business rule compliance review (assists)
-/tl validate   → Technical validation in docs/VALIDATION.md (leads technical)
+/tl validate   → Technical validation in {DOCS_PATH}/VALIDATION.md (leads technical)
 ```
 
 **Run both** `/pm validate` and `/tl validate`. Both must APPROVE to proceed.
@@ -68,8 +68,8 @@ Run the phases in order. Each command invokes the agent in the specified phase m
 ### Phase 5: Review
 
 ```
-/tl review     → Produces docs/REVIEW.md (leads)
-/qa review     → Adds QA section to docs/REVIEW.md (assists)
+/tl review     → Produces {DOCS_PATH}/REVIEW.md (leads)
+/qa review     → Adds QA section to {DOCS_PATH}/REVIEW.md (assists)
 ```
 
 **Start with** `/tl review`, then `/qa review`.
@@ -82,7 +82,7 @@ Run the phases in order. Each command invokes the agent in the specified phase m
 ### Phase 6: Test
 
 ```
-/qa test       → Produces tests/ + docs/TEST_REPORT.md (leads)
+/qa test       → Produces tests/ + {DOCS_PATH}/TEST_REPORT.md (leads)
 /tl test       → Reviews test coverage (assists)
 ```
 
@@ -96,8 +96,8 @@ Run the phases in order. Each command invokes the agent in the specified phase m
 ### Phase 7: Document
 
 ```
-/pm document   → Produces README.md, CHANGELOG.md (leads business)
-/tl document   → Produces docs/API_REFERENCE.md, updates ARCHITECTURE.md (leads technical)
+/pm document   → Produces README.md, CHANGELOG.md, maintains docs/ descriptive docs (leads business)
+/tl document   → Produces {DOCS_PATH}/API_REFERENCE.md, updates ARCHITECTURE.md, maintains docs/ technical docs (leads technical)
 /po document   → Reviews business docs for accuracy (assists)
 /dev document  → Adds inline code documentation (assists)
 /qa document   → Finalizes test documentation (assists)
@@ -180,19 +180,25 @@ The agency is stack-agnostic. To use a different stack:
 
 ## Project Artifacts
 
+Working artifacts are stored in timestamped subfolders under `agent_docs/` (one per SDLC run). The `docs/` directory holds maintained descriptive documentation for human consumption.
+
 ```mermaid
 graph TD
     Root["project-root/"]
     Root --> claude[".claude/<br/>hooks.json"]
     Root --> CMD["CLAUDE.md<br/><i>Project configuration</i>"]
-    Root --> docs["docs/"]
-    docs --> BRIEF["PROJECT_BRIEF.md<br/><i>Phase 1 — PM</i>"]
-    docs --> BACKLOG["BACKLOG.md<br/><i>Phase 1 — PO</i>"]
-    docs --> ARCH["ARCHITECTURE.md<br/><i>Phase 2 — TL</i>"]
-    docs --> VALID["VALIDATION.md<br/><i>Phase 3 — PM + TL</i>"]
-    docs --> REVIEW["REVIEW.md<br/><i>Phase 5 — TL + QA</i>"]
-    docs --> TEST["TEST_REPORT.md<br/><i>Phase 6 — QA</i>"]
-    docs --> APIREF["API_REFERENCE.md<br/><i>Phase 7 — TL</i>"]
+    Root --> agentDocs["agent_docs/"]
+    agentDocs --> agency["agency/<br/>STATE.json, CHECKPOINT.md"]
+    agentDocs --> backlog["backlog/<br/>backlog.json"]
+    agentDocs --> run["&lt;desc&gt;-&lt;timestamp&gt;/<br/><i>DOCS_PATH — per-run working artifacts</i>"]
+    run --> BRIEF["PROJECT_BRIEF.md<br/><i>Phase 1 — PM</i>"]
+    run --> ARCH["ARCHITECTURE.md<br/><i>Phase 2 — TL</i>"]
+    run --> VALID["VALIDATION.md<br/><i>Phase 3 — PM + TL</i>"]
+    run --> REVIEW["REVIEW.md<br/><i>Phase 5 — TL + QA</i>"]
+    run --> TEST["TEST_REPORT.md<br/><i>Phase 6 — QA</i>"]
+    run --> APIREF["API_REFERENCE.md<br/><i>Phase 7 — TL</i>"]
+    run --> DECISIONS["DECISIONS.md<br/><i>Append-only decision log</i>"]
+    Root --> docs["docs/<br/><i>Descriptive docs — architecture overview, flow diagrams</i>"]
     Root --> README["README.md<br/><i>Phase 7 — PM</i>"]
     Root --> CHANGELOG["CHANGELOG.md<br/><i>Phase 7 — PM</i>"]
     Root --> src["src/<br/><i>Phase 4 — Dev</i>"]

@@ -29,7 +29,8 @@ Blocking hooks prevent agents from executing phases out of order or without prop
 **Purpose:** Blocks `/dev implement` if VALIDATION.md doesn't contain dual APPROVED verdicts (PM + TL approval required).
 
 **Checks:**
-- Counts `[VERDICT:APPROVED]` markers in `docs/VALIDATION.md`
+- Reads `docs_path` from STATE.json (falls back to `docs/` if absent)
+- Counts `[VERDICT:APPROVED]` markers in `{docs_path}/VALIDATION.md`
 - Blocks if fewer than 2 APPROVED verdicts found
 - Detects REPROVED verdicts and provides feedback
 
@@ -40,7 +41,7 @@ Blocking hooks prevent agents from executing phases out of order or without prop
 **Purpose:** Blocks `/qa test` if REVIEW.md doesn't show PASS verdict or has blocking issues.
 
 **Checks:**
-- Looks for `[GATE:PASS]` marker in `docs/REVIEW.md`
+- Looks for `[GATE:PASS]` marker in `{docs_path}/REVIEW.md`
 - Blocks if `[GATE:FAIL]` marker found
 - Detects "BLOCKING ISSUES" section and provides feedback
 
@@ -124,9 +125,9 @@ Create or edit `.claude/hooks.json` in your project root:
        scripts --> ptg["pre_test_guard.py"]
        scripts --> prg["pre_review_guard.py"]
        Root --> agent["agent_docs/agency/<br/>STATE.json"]
-       Root --> docs["docs/"]
-       docs --> valid["VALIDATION.md<br/><i>gate verdicts</i>"]
-       docs --> review["REVIEW.md<br/><i>review verdicts</i>"]
+       Root --> agentDocs["agent_docs/&lt;desc&gt;-&lt;timestamp&gt;/<br/><i>DOCS_PATH</i>"]
+       agentDocs --> valid["VALIDATION.md<br/><i>gate verdicts</i>"]
+       agentDocs --> review["REVIEW.md<br/><i>review verdicts</i>"]
        Root --> src["src/<br/><i>implementation files</i>"]
    ```
 
@@ -246,7 +247,7 @@ The blocking hooks integrate with the Software Development Agency workflow:
 4. **Implementation Phase** → `/dev implement`
    - Requires: validation completed + dual APPROVED
    - Blocked by: `phase_sequence_guard.py` and `pre_implement_guard.py`
-   - Blocked if: validate gate verdict ≠ "APPROVED,APPROVED" OR VALIDATION.md lacks verdicts
+   - Blocked if: validate gate verdict ≠ "APPROVED,APPROVED" OR `{docs_path}/VALIDATION.md` lacks verdicts
    - Updates STATE.json: `implement.status = "completed"`
 
 5. **Review Phase** → `/tl review`

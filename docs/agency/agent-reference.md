@@ -9,10 +9,10 @@ Detailed reference cards for each agency agent. For full agent behavior and phas
 - **Client interaction:** Heavy -- main bridge between client and agency.
 - **Hard constraints:** NEVER writes code. NEVER makes technical architecture decisions. Escalates technical questions to TL.
 - **Phase modes:**
-  - `/pm plan` -- **LEADS.** Gathers requirements, produces `docs/PROJECT_BRIEF.md`.
-  - `/pm validate` -- **LEADS (business).** Reviews design against business objectives, writes business section of `docs/VALIDATION.md`.
+  - `/pm plan` -- **LEADS.** Gathers requirements, produces `{DOCS_PATH}/PROJECT_BRIEF.md`.
+  - `/pm validate` -- **LEADS (business).** Reviews design against business objectives, writes business section of `{DOCS_PATH}/VALIDATION.md`.
   - `/pm document` -- **LEADS (business).** Produces `README.md` and `CHANGELOG.md`.
-- **Output artifacts:** `docs/PROJECT_BRIEF.md`, business section of `docs/VALIDATION.md`, `README.md`, `CHANGELOG.md`.
+- **Output artifacts:** `{DOCS_PATH}/PROJECT_BRIEF.md`, business section of `{DOCS_PATH}/VALIDATION.md`, `README.md`, `CHANGELOG.md`.
 - **Skill file:** `~/.claude/skills/pm/SKILL.md`
 
 ## PO -- Product Owner
@@ -22,10 +22,10 @@ Detailed reference cards for each agency agent. For full agent behavior and phas
 - **Client interaction:** Heavy -- clarifies ambiguous business rules with the client.
 - **Hard constraints:** NEVER writes code. NEVER makes architecture decisions. Delegates technical questions to TL.
 - **Phase modes:**
-  - `/po plan` -- **ASSISTS.** Breaks project brief into user stories, produces `docs/BACKLOG.md`.
-  - `/po validate` -- **ASSISTS.** Reviews design for business rule compliance, adds PO review to `docs/VALIDATION.md`.
+  - `/po plan` -- **ASSISTS.** Breaks project brief into user stories, produces `agent_docs/backlog/BACKLOG.md`.
+  - `/po validate` -- **ASSISTS.** Reviews design for business rule compliance, adds PO review to `{DOCS_PATH}/VALIDATION.md`.
   - `/po document` -- **ASSISTS.** Reviews business docs for accuracy.
-- **Output artifacts:** `docs/BACKLOG.md`, PO review section of `docs/VALIDATION.md`.
+- **Output artifacts:** `agent_docs/backlog/BACKLOG.md`, PO review section of `{DOCS_PATH}/VALIDATION.md`.
 - **Skill file:** `~/.claude/skills/po/SKILL.md`
 
 ## TL -- Tech Lead
@@ -36,13 +36,13 @@ Detailed reference cards for each agency agent. For full agent behavior and phas
 - **Hard constraints:** Prefers NOT to write production code (delegates to Dev). CAN write prototype/spike code. Uses Mermaid diagrams for all architecture visuals.
 - **Phase modes:**
   - `/tl plan` -- **ASSISTS.** Adds technical risk assessment to project brief.
-  - `/tl design` -- **LEADS.** Produces `docs/ARCHITECTURE.md`.
-  - `/tl validate` -- **LEADS (technical).** Technical feasibility assessment, writes technical section of `docs/VALIDATION.md`.
+  - `/tl design` -- **LEADS.** Produces `{DOCS_PATH}/ARCHITECTURE.md`.
+  - `/tl validate` -- **LEADS (technical).** Technical feasibility assessment, writes technical section of `{DOCS_PATH}/VALIDATION.md`.
   - `/tl implement` -- **ASSISTS.** Provides technical guidance, reviews for architecture compliance.
-  - `/tl review` -- **LEADS.** Structured code review, produces `docs/REVIEW.md`.
+  - `/tl review` -- **LEADS.** Structured code review, produces `{DOCS_PATH}/REVIEW.md`.
   - `/tl test` -- **ASSISTS.** Reviews test coverage and strategy.
-  - `/tl document` -- **LEADS (technical).** Produces `docs/API_REFERENCE.md`, updates `docs/ARCHITECTURE.md`.
-- **Output artifacts:** `docs/ARCHITECTURE.md`, technical section of `docs/VALIDATION.md`, `docs/REVIEW.md`, `docs/API_REFERENCE.md`.
+  - `/tl document` -- **LEADS (technical).** Produces `{DOCS_PATH}/API_REFERENCE.md`, updates `{DOCS_PATH}/ARCHITECTURE.md`.
+- **Output artifacts:** `{DOCS_PATH}/ARCHITECTURE.md`, technical section of `{DOCS_PATH}/VALIDATION.md`, `{DOCS_PATH}/REVIEW.md`, `{DOCS_PATH}/API_REFERENCE.md`.
 - **Skill file:** `~/.claude/skills/tl/SKILL.md`
 
 ## Dev -- Developer Specialist
@@ -56,7 +56,7 @@ Detailed reference cards for each agency agent. For full agent behavior and phas
   - `/dev design` -- **ASSISTS.** Reviews architecture for implementability.
   - `/dev implement` -- **LEADS.** Writes production code in `src/`.
   - `/dev document` -- **ASSISTS.** Adds inline code documentation (XML doc comments, JSDoc).
-- **Output artifacts:** Source code in `src/`, specialist notes in `docs/PROJECT_BRIEF.md`.
+- **Output artifacts:** Source code in `src/`, specialist notes in `{DOCS_PATH}/PROJECT_BRIEF.md`.
 - **Skill file:** `~/.claude/skills/dev/SKILL.md`
 
 ## QA -- QA Specialist
@@ -68,8 +68,8 @@ Detailed reference cards for each agency agent. For full agent behavior and phas
 - **Phase modes:**
   - `/qa plan` -- **ASSISTS.** Adds testability notes to project brief.
   - `/qa design` -- **ASSISTS.** Reviews architecture for testability.
-  - `/qa review` -- **ASSISTS.** Reviews code for correctness and edge cases, adds QA section to `docs/REVIEW.md`.
-  - `/qa test` -- **LEADS.** Writes and executes tests, produces `docs/TEST_REPORT.md`.
+  - `/qa review` -- **ASSISTS.** Reviews code for correctness and edge cases, adds QA section to `{DOCS_PATH}/REVIEW.md`.
+  - `/qa test` -- **LEADS.** Writes and executes tests, produces `{DOCS_PATH}/TEST_REPORT.md`.
   - `/qa document` -- **ASSISTS.** Finalizes test documentation.
-- **Output artifacts:** Test files in `tests/`, `docs/TEST_REPORT.md`, QA section of `docs/REVIEW.md`.
+- **Output artifacts:** Test files in `tests/`, `{DOCS_PATH}/TEST_REPORT.md`, QA section of `{DOCS_PATH}/REVIEW.md`.
 - **Skill file:** `~/.claude/skills/qa/SKILL.md`

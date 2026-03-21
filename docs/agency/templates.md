@@ -14,4 +14,4 @@ Seven artifact templates live in `~/.claude/docs/templates/`. Agents use these a
 
 ## How Agents Consume Templates
 
-Each skill file's phase mode includes an instruction like "Produce `docs/ARCHITECTURE.md` following the template in `~/.claude/docs/templates/ARCHITECTURE.md`." The agent reads the template, fills in the placeholders with project-specific content, and writes the result to the project's `docs/` directory. Templates stay in `~/.claude/docs/templates/` and are never modified during a project cycle.
+Each skill file's phase mode includes an instruction like "Produce `{DOCS_PATH}/ARCHITECTURE.md` following the template in `~/.claude/docs/templates/ARCHITECTURE.md`." The agent reads the template, fills in the placeholders with project-specific content, and writes the result to the run's `DOCS_PATH` directory (a timestamped subfolder under `agent_docs/`). Templates stay in `~/.claude/docs/templates/` and are never modified during a project cycle.

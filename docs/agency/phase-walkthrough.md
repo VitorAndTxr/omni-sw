@@ -11,14 +11,14 @@ Detailed step-by-step guide for each of the seven SDLC phases. For authoritative
 
 **Step-by-step:**
 
-1. `/pm plan` -- PM reads `CLAUDE.md` for project context, engages the client in structured conversation, produces `docs/PROJECT_BRIEF.md`.
-2. `/po plan` -- PO reads the project brief, breaks objectives into user stories with acceptance criteria (Given/When/Then), produces `docs/BACKLOG.md`.
+1. `/pm plan` -- PM reads `CLAUDE.md` for project context, engages the client in structured conversation, produces `{DOCS_PATH}/PROJECT_BRIEF.md`.
+2. `/po plan` -- PO reads the project brief, breaks objectives into user stories with acceptance criteria (Given/When/Then), produces `agent_docs/backlog/BACKLOG.md`.
 3. `/tl plan` *(optional)* -- TL adds technical risk assessment (likelihood, impact, mitigation, T-shirt effort) to the brief.
 4. `/dev plan` *(optional)* -- Dev adds domain-specific implementation notes.
 5. `/qa plan` *(optional)* -- QA adds testability risks and ambiguous acceptance criteria notes.
 
 **Inputs:** `CLAUDE.md`, client conversation.
-**Outputs:** `docs/PROJECT_BRIEF.md`, `docs/BACKLOG.md`.
+**Outputs:** `{DOCS_PATH}/PROJECT_BRIEF.md`, `agent_docs/backlog/BACKLOG.md`.
 **Gate condition:** PM and PO are satisfied with the brief and backlog. Proceed to Design.
 
 ## Phase 2: Design
@@ -30,12 +30,12 @@ Detailed step-by-step guide for each of the seven SDLC phases. For authoritative
 
 **Step-by-step:**
 
-1. `/tl design` -- TL reads the project brief, backlog, and `CLAUDE.md`. Designs system overview, data models, API contracts, component architecture, error handling, security, and project structure. Produces `docs/ARCHITECTURE.md` with Mermaid diagrams.
+1. `/tl design` -- TL reads the project brief, backlog, and `CLAUDE.md`. Designs system overview, data models, API contracts, component architecture, error handling, security, and project structure. Produces `{DOCS_PATH}/ARCHITECTURE.md` with Mermaid diagrams.
 2. `/dev design` *(optional)* -- Dev reviews for implementability, flags library/framework compatibility issues.
 3. `/qa design` *(optional)* -- QA reviews for testability (injectable dependencies, mockable interfaces, clear API contracts).
 
-**Inputs:** `docs/PROJECT_BRIEF.md`, `docs/BACKLOG.md`, `CLAUDE.md`.
-**Outputs:** `docs/ARCHITECTURE.md`.
+**Inputs:** `{DOCS_PATH}/PROJECT_BRIEF.md`, `agent_docs/backlog/BACKLOG.md`, `CLAUDE.md`.
+**Outputs:** `{DOCS_PATH}/ARCHITECTURE.md`.
 **Gate condition:** Architecture document is complete. Proceed to Validate.
 
 ## Phase 3: Validate (Dual Gate)
@@ -47,12 +47,12 @@ Detailed step-by-step guide for each of the seven SDLC phases. For authoritative
 
 **Step-by-step:**
 
-1. `/pm validate` -- PM checks architecture against business objectives, scope, and constraints. Produces verdict (APPROVED/REPROVED) in business section of `docs/VALIDATION.md`.
+1. `/pm validate` -- PM checks architecture against business objectives, scope, and constraints. Produces verdict (APPROVED/REPROVED) in business section of `{DOCS_PATH}/VALIDATION.md`.
 2. `/po validate` *(optional)* -- PO verifies every user story has a path to implementation and acceptance criteria are not contradicted.
-3. `/tl validate` -- TL evaluates technical feasibility, scalability, security, testability, error handling. Produces verdict in technical section of `docs/VALIDATION.md`.
+3. `/tl validate` -- TL evaluates technical feasibility, scalability, security, testability, error handling. Produces verdict in technical section of `{DOCS_PATH}/VALIDATION.md`.
 
-**Inputs:** `docs/PROJECT_BRIEF.md`, `docs/ARCHITECTURE.md`, `docs/BACKLOG.md`, `CLAUDE.md`.
-**Outputs:** `docs/VALIDATION.md`.
+**Inputs:** `{DOCS_PATH}/PROJECT_BRIEF.md`, `{DOCS_PATH}/ARCHITECTURE.md`, `agent_docs/backlog/BACKLOG.md`, `CLAUDE.md`.
+**Outputs:** `{DOCS_PATH}/VALIDATION.md`.
 
 **Gate condition (dual):**
 
@@ -74,7 +74,7 @@ Detailed step-by-step guide for each of the seven SDLC phases. For authoritative
 1. `/dev implement` -- Dev reads architecture, backlog, validation, conventions from `CLAUDE.md`, and any prior review feedback. Implements data models, business logic, API endpoints, error handling. Produces source code in `src/`.
 2. `/tl implement` *(on-demand)* -- TL is available for technical guidance and architecture compliance questions.
 
-**Inputs:** `docs/ARCHITECTURE.md`, `docs/BACKLOG.md`, `docs/VALIDATION.md`, `CLAUDE.md`, `docs/REVIEW.md` (if re-implementing).
+**Inputs:** `{DOCS_PATH}/ARCHITECTURE.md`, `agent_docs/backlog/BACKLOG.md`, `{DOCS_PATH}/VALIDATION.md`, `CLAUDE.md`, `{DOCS_PATH}/REVIEW.md` (if re-implementing).
 **Outputs:** Source code in `src/`.
 **Gate condition:** Implementation is complete. Proceed to Review.
 
@@ -87,11 +87,11 @@ Detailed step-by-step guide for each of the seven SDLC phases. For authoritative
 
 **Step-by-step:**
 
-1. `/tl review` -- TL reviews source code against architecture, backlog criteria, and `CLAUDE.md` conventions. Categorizes issues as **blocking** (must fix) or **suggestion** (nice to have). Produces `docs/REVIEW.md`.
-2. `/qa review` *(optional)* -- QA reviews for correctness against acceptance criteria, edge cases, input validation, data integrity. Adds QA section to `docs/REVIEW.md`.
+1. `/tl review` -- TL reviews source code against architecture, backlog criteria, and `CLAUDE.md` conventions. Categorizes issues as **blocking** (must fix) or **suggestion** (nice to have). Produces `{DOCS_PATH}/REVIEW.md`.
+2. `/qa review` *(optional)* -- QA reviews for correctness against acceptance criteria, edge cases, input validation, data integrity. Adds QA section to `{DOCS_PATH}/REVIEW.md`.
 
-**Inputs:** `docs/ARCHITECTURE.md`, `docs/BACKLOG.md`, `CLAUDE.md`, source code.
-**Outputs:** `docs/REVIEW.md`.
+**Inputs:** `{DOCS_PATH}/ARCHITECTURE.md`, `agent_docs/backlog/BACKLOG.md`, `CLAUDE.md`, source code.
+**Outputs:** `{DOCS_PATH}/REVIEW.md`.
 
 **Gate condition:**
 
@@ -109,11 +109,11 @@ Detailed step-by-step guide for each of the seven SDLC phases. For authoritative
 
 **Step-by-step:**
 
-1. `/qa test` -- QA reads backlog (acceptance criteria drive test cases), architecture (system structure for integration tests), review findings, and `CLAUDE.md` (test framework conventions). Creates unit tests, integration tests, and edge case tests in `tests/`. Executes test suite. Produces `docs/TEST_REPORT.md`.
+1. `/qa test` -- QA reads backlog (acceptance criteria drive test cases), architecture (system structure for integration tests), review findings, and `CLAUDE.md` (test framework conventions). Creates unit tests, integration tests, and edge case tests in `tests/`. Executes test suite. Produces `{DOCS_PATH}/TEST_REPORT.md`.
 2. `/tl test` *(optional)* -- TL reviews test coverage adequacy and strategy.
 
-**Inputs:** `docs/BACKLOG.md`, `docs/ARCHITECTURE.md`, `docs/REVIEW.md`, `CLAUDE.md`, source code.
-**Outputs:** Test files in `tests/`, `docs/TEST_REPORT.md`.
+**Inputs:** `agent_docs/backlog/BACKLOG.md`, `{DOCS_PATH}/ARCHITECTURE.md`, `{DOCS_PATH}/REVIEW.md`, `CLAUDE.md`, source code.
+**Outputs:** Test files in `tests/`, `{DOCS_PATH}/TEST_REPORT.md`.
 
 **Gate condition:**
 
@@ -133,11 +133,11 @@ Detailed step-by-step guide for each of the seven SDLC phases. For authoritative
 **Step-by-step:**
 
 1. `/pm document` -- PM produces `README.md` (project overview, setup, usage) and `CHANGELOG.md`.
-2. `/tl document` -- TL produces `docs/API_REFERENCE.md` and updates `docs/ARCHITECTURE.md` to reflect implementation changes.
+2. `/tl document` -- TL produces `{DOCS_PATH}/API_REFERENCE.md` and updates `{DOCS_PATH}/ARCHITECTURE.md` to reflect implementation changes.
 3. `/po document` *(optional)* -- PO reviews business docs for accuracy against backlog.
 4. `/dev document` *(optional)* -- Dev adds inline code documentation (XML doc comments, JSDoc).
 5. `/qa document` *(optional)* -- QA finalizes test documentation, adds testing section to README.
 
 **Inputs:** All `docs/*.md` files, source code, test files, `CLAUDE.md`.
-**Outputs:** `README.md`, `CHANGELOG.md`, `docs/API_REFERENCE.md`, updated `docs/ARCHITECTURE.md`.
+**Outputs:** `README.md`, `CHANGELOG.md`, `{DOCS_PATH}/API_REFERENCE.md`, updated `{DOCS_PATH}/ARCHITECTURE.md`.
 **Gate condition:** All documentation complete. Project cycle is finished.

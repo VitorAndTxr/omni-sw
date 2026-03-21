@@ -52,13 +52,15 @@ graph LR
 
 | # | Phase | Leader | Gate? | Key artifact |
 |---|-------|--------|-------|-------------|
-| 1 | Plan | PM → PO | — | `docs/PROJECT_BRIEF.md`, `docs/BACKLOG.md` |
-| 2 | Design | TL | — | `docs/ARCHITECTURE.md` |
-| 3 | Validate | PM + TL | Dual approval | `docs/VALIDATION.md` |
+| 1 | Plan | PM → PO | — | `{DOCS_PATH}/PROJECT_BRIEF.md`, backlog |
+| 2 | Design | TL | — | `{DOCS_PATH}/ARCHITECTURE.md` |
+| 3 | Validate | PM + TL | Dual approval | `{DOCS_PATH}/VALIDATION.md` |
 | 4 | Implement | Dev | — | `src/` |
-| 5 | Review | TL | Blocking issues | `docs/REVIEW.md` |
-| 6 | Test | QA | All tests pass | `tests/`, `docs/TEST_REPORT.md` |
-| 7 | Document | PM + TL | — | `README.md`, `CHANGELOG.md`, `docs/API_REFERENCE.md` |
+| 5 | Review | TL | Blocking issues | `{DOCS_PATH}/REVIEW.md` |
+| 6 | Test | QA | All tests pass | `tests/`, `{DOCS_PATH}/TEST_REPORT.md` |
+| 7 | Document | PM + TL | — | `README.md`, `CHANGELOG.md`, `{DOCS_PATH}/API_REFERENCE.md` |
+
+`{DOCS_PATH}` is a timestamped subfolder under `agent_docs/` (e.g., `agent_docs/build-auth-api-2026_03_21_10_30/`), created per SDLC run to isolate working artifacts. The `docs/` directory holds maintained descriptive documentation (architecture overview, flow diagrams) for human consumption.
 
 Gate phases enforce quality before progression: both PM and TL must APPROVE to proceed from Validate; blocking issues must be resolved before leaving Review; all tests must pass before reaching Document.
 
@@ -170,7 +172,7 @@ The agency sends Windows toast notifications to alert you when the orchestrator 
 
 ### How it works
 
-A `PreToolUse` hook on `AskUserQuestion` triggers `scripts/notify.py`, which fires a native Windows toast via PowerShell WinRT APIs. No third-party dependencies required. On non-Windows systems the script is a silent no-op.
+A `PreToolUse` hook on `AskUserQuestion` triggers `agency_cli notify input-needed`, which fires a native Windows toast via PowerShell WinRT APIs. No third-party dependencies required. On non-Windows systems the script is a silent no-op. The hook command uses the exact Python interpreter path resolved at install time for reliability.
 
 The `agency_cli notify` command is also used internally by agents for phase-complete and SDLC-complete toasts.
 
@@ -229,17 +231,19 @@ project-root/
 │   ├── agency/
 │   │   ├── STATE.json                 # Orchestrator state machine
 │   │   └── CHECKPOINT.md             # Recovery point on session interruption
-│   └── backlog/
-│       └── backlog.json              # User story store
+│   ├── backlog/
+│   │   └── backlog.json              # User story store
+│   └── <desc>-<timestamp>/           # Per-run working artifacts (DOCS_PATH)
+│       ├── PROJECT_BRIEF.md           # Phase 1 — PM
+│       ├── ARCHITECTURE.md            # Phase 2 — TL
+│       ├── VALIDATION.md              # Phase 3 — PM + TL
+│       ├── REVIEW.md                  # Phase 5 — TL + QA
+│       ├── TEST_REPORT.md             # Phase 6 — QA
+│       ├── API_REFERENCE.md           # Phase 7 — TL
+│       └── DECISIONS.md               # Append-only decision log
 ├── docs/
 │   ├── OBJECTIVE.md                   # Structured input for the orchestrator
-│   ├── PROJECT_BRIEF.md               # Phase 1 — PM
-│   ├── BACKLOG.md                     # Phase 1 — PO
-│   ├── ARCHITECTURE.md                # Phase 2 — TL
-│   ├── VALIDATION.md                  # Phase 3 — PM + TL
-│   ├── REVIEW.md                      # Phase 5 — TL + QA
-│   ├── TEST_REPORT.md                 # Phase 6 — QA
-│   └── API_REFERENCE.md               # Phase 7 — TL
+│   └── (descriptive docs)             # Architecture overview, flow diagrams
 ├── src/                               # Phase 4 — Dev
 ├── tests/                             # Phase 6 — QA
 ├── README.md                          # Phase 7 — PM
