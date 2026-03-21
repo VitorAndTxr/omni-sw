@@ -36,6 +36,10 @@ STATUS_TRANSITIONS = {
 }
 
 # Phase -> expected story status at start/end
+# "from" is the expected status when the phase begins; "to" is the status after
+# the phase-start transition.  Note: Dev transitions stories to "In Review" at
+# the end of Implement, and QA transitions stories to "Done" at the end of Test
+# (on pass).  The Document phase has no transition — stories are already Done.
 PHASE_STATUS_MAP = {
     "plan":      {"from": None,         "to": "Ready",       "agent": "po"},
     "design":    {"from": "Ready",      "to": "In Design",   "agent": "tl"},
@@ -43,7 +47,7 @@ PHASE_STATUS_MAP = {
     "implement": {"from": "Validated",  "to": "In Progress", "agent": "dev"},
     "review":    {"from": "In Progress","to": "In Review",   "agent": "tl"},
     "test":      {"from": "In Review",  "to": "In Testing",  "agent": "qa"},
-    "document":  {"from": "In Testing", "to": "Done",        "agent": "pm"},
+    "document":  {"from": "Done",       "to": "Done",        "agent": "pm"},
 }
 
 # Permission matrix
@@ -104,6 +108,9 @@ def phase_transition(phase: str, caller: str, backlog_path: str, script_path: st
 
     if from_status is None:
         return {"skipped": True, "reason": "Plan phase creates stories, no transition needed"}
+
+    if from_status == to_status:
+        return {"skipped": True, "reason": f"No transition needed — stories already in '{to_status}'"}
 
     # 1. List stories in from_status
     list_result = run_backlog_cmd(script_path, backlog_path,

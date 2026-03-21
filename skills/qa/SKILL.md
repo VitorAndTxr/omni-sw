@@ -52,15 +52,33 @@ Lead testing phase. Write comprehensive tests and execute them.
 
 **Workflow:**
 1. Query stories: `python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format summary`
-2. Transition to "In Testing": `python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Testing" --caller qa`
+2. Transition to "In Testing":
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Testing" --caller qa
+   ```
+   Or use batch transition via CLI:
+   ```bash
+   python "{CLI_PATH}" backlog phase-transition --phase test --caller qa --backlog-path "{BACKLOG_PATH}" --script-path "{SCRIPT_PATH}"
+   ```
 3. For each story, get full ACs: `python {SCRIPT} get {BACKLOG_PATH} --id <US-XXX>`
 4. Read `{DOCS_PATH}/ARCHITECTURE.md`, `{DOCS_PATH}/REVIEW.md`, `CLAUDE.md`, and source code.
 5. Create test files: unit tests (services/logic), integration tests (API endpoints), edge case tests (boundaries from review).
 6. Execute test suite using project's test command (e.g., `dotnet test`, `npm test`).
 7. Produce `{DOCS_PATH}/TEST_REPORT.md` following template.
-8. If tests pass: transition stories to "Done".
-9. If tests fail: document failures with reproduction steps. Categorize as **bug** (→ "In Progress", instruct `/dev implement`) or **test issue** (fix and re-run).
-10. Render updated backlog (once after all transitions).
+8. If tests pass: transition stories to "Done":
+   ```bash
+   python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "Done" --caller qa
+   ```
+9. If tests fail: document failures with reproduction steps. Categorize as:
+   - **bug** — regress story to "In Progress", instruct `/dev implement`:
+     ```bash
+     python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Progress" --caller qa
+     ```
+   - **test issue** — fix test and re-run (no status change).
+10. Render updated backlog (once after all transitions):
+    ```bash
+    python {SCRIPT} render {BACKLOG_PATH}
+    ```
 
 **Important rules:**
 - NEVER modify files in `src/`.
