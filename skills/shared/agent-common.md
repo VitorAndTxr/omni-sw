@@ -11,6 +11,7 @@ When spawned by the orchestrator, your prompt includes all resolved paths in a `
 - `BACKLOG_PATH` — absolute path to `backlog.json`
 - `CLI_PATH` — absolute path to `agency_cli.py`
 - `STATE_PATH` — absolute path to `STATE.json`
+- `DOCS_PATH` — working documents directory for this SDLC run (timestamped subfolder under `agent_docs/`)
 
 **Do NOT re-resolve these via Glob.** The orchestrator already normalized them for bash.
 
@@ -28,6 +29,8 @@ Store as `{CLI}`, then resolve all other paths:
 python "{CLI}" init --scan-root {workspace}
 # Returns JSON: project_root, script_path, backlog_path, team_name, claude_md
 ```
+
+If `DOCS_PATH` is not provided in resolved paths (standalone invocation), fall back to `{PROJECT_ROOT}/docs/`.
 
 ## Backlog Integration
 
@@ -116,7 +119,7 @@ python "{CLI_PATH}" state gate-record --state-path "{STATE_PATH}" --phase test -
 When making significant design decisions, trade-offs, or choosing between alternatives, record them:
 
 ```bash
-python "{CLI_PATH}" decision add --decisions-path "{PROJECT_ROOT}/docs/DECISIONS.md" --phase {phase} --agent {role} --title "Short decision title" --context "Why this decision was needed" --alternatives "Option A (rejected: reason), Option B (rejected: reason)" --decision "What was decided" --impact "Affected stories or components"
+python "{CLI_PATH}" decision add --decisions-path "{DOCS_PATH}/DECISIONS.md" --phase {phase} --agent {role} --title "Short decision title" --context "Why this decision was needed" --alternatives "Option A (rejected: reason), Option B (rejected: reason)" --decision "What was decided" --impact "Affected stories or components"
 ```
 
 ### When to Record Decisions

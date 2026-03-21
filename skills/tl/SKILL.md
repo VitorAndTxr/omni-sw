@@ -24,7 +24,7 @@ For project root resolution, backlog integration, and phase routing: read `share
 
 ## Phase: Plan (`/tl plan`) — ASSISTS
 
-Identify technical risks and constraints. Read `docs/PROJECT_BRIEF.md` and `CLAUDE.md`. Assess: integration complexity, performance concerns, security implications, platform limitations, infeasible requirements. Add "Technical Risk Assessment" section to brief with T-shirt estimates (S/M/L/XL).
+Identify technical risks and constraints. Read `{DOCS_PATH}/PROJECT_BRIEF.md` and `CLAUDE.md`. Assess: integration complexity, performance concerns, security implications, platform limitations, infeasible requirements. Add "Technical Risk Assessment" section to brief with T-shirt estimates (S/M/L/XL).
 
 **Allowed tools:** Read, Edit, Write, Glob, Grep, WebSearch
 
@@ -35,13 +35,13 @@ Identify technical risks and constraints. Read `docs/PROJECT_BRIEF.md` and `CLAU
 Lead design phase. Produce comprehensive architecture document.
 
 **Workflow:**
-1. Read `docs/PROJECT_BRIEF.md`.
+1. Read `{DOCS_PATH}/PROJECT_BRIEF.md`.
 2. Query backlog: `python {SCRIPT} list {BACKLOG_PATH} --status Ready --format json`
 3. Read `CLAUDE.md` for stack, conventions, forbidden patterns.
 4. Update story statuses to "In Design": `python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Design" --caller tl`
 5. **Optional:** Spawn dev/qa teammates for implementability/testability review.
 6. Design and document: System Overview (Mermaid), Tech Stack, Data Models (ERD), API Contracts, Component Architecture, Error Handling Strategy, Security Considerations, Project Structure.
-7. Produce `docs/ARCHITECTURE.md` following template in `~/.claude/docs/templates/ARCHITECTURE.md`.
+7. Produce `{DOCS_PATH}/ARCHITECTURE.md` following template in `~/.claude/docs/templates/ARCHITECTURE.md`.
 8. **Feedback Integration:** If dev/qa assists provided notes, append a `## Feedback Integration` section to ARCHITECTURE.md documenting the disposition of each assist's feedback:
    ```markdown
    ## Feedback Integration
@@ -54,7 +54,7 @@ Lead design phase. Produce comprehensive architecture document.
 9. Render updated backlog (once after all transitions).
 10. Instruct user to run Validate: `/pm validate` and `/tl validate`.
 
-**Output:** `docs/ARCHITECTURE.md`
+**Output:** `{DOCS_PATH}/ARCHITECTURE.md`
 
 **Allowed tools:** Read, Write, Edit, Bash, Glob, Grep, WebSearch, Task, TaskCreate, TaskUpdate, TaskList, TeamCreate, SendMessage
 
@@ -65,16 +65,16 @@ Lead design phase. Produce comprehensive architecture document.
 Lead technical validation gate. Assess whether design is feasible and sound.
 
 **Workflow:**
-1. Read `docs/ARCHITECTURE.md`.
+1. Read `{DOCS_PATH}/ARCHITECTURE.md`.
 2. Query backlog: `python {SCRIPT} list {BACKLOG_PATH} --status "In Design" --fields id,title,acceptance_criteria,dependencies`
 3. Read `CLAUDE.md` for stack constraints.
 4. Evaluate: feasibility, scalability, security, testability, error handling, structure.
 5. Produce verdict: **APPROVED** or **REPROVED** with rationale.
-6. If APPROVED, transition stories to Validated. Write technical validation section in `docs/VALIDATION.md`.
+6. If APPROVED, transition stories to Validated. Write technical validation section in `{DOCS_PATH}/VALIDATION.md`.
 7. Render updated backlog (once after all transitions).
 8. If REPROVED: specify changes, instruct user to go back to `/tl design`.
 
-**Output:** Technical validation section in `docs/VALIDATION.md`
+**Output:** Technical validation section in `{DOCS_PATH}/VALIDATION.md`
 
 **Allowed tools:** Read, Write, Edit, Bash, WebSearch
 
@@ -93,16 +93,16 @@ Provide technical guidance to Dev. Be available for questions, review code for a
 Lead code review phase. Produce structured review.
 
 **Workflow:**
-1. Read `docs/ARCHITECTURE.md`.
+1. Read `{DOCS_PATH}/ARCHITECTURE.md`.
 2. Query stories: `python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --fields id,title,acceptance_criteria`
 3. Explore and read all source code.
 4. Review for: architecture compliance, code quality, security, error handling, performance, convention adherence (`CLAUDE.md`).
-5. Produce `docs/REVIEW.md` following template. Categorize issues as **blocking** or **suggestion**.
+5. Produce `{DOCS_PATH}/REVIEW.md` following template. Categorize issues as **blocking** or **suggestion**.
 6. **Feedback Integration:** If qa-review-assist provided findings, add a `## QA Feedback Integration` section to REVIEW.md with the same table format, documenting how each QA observation was handled in the review.
 7. If blocking issues: transition stories back to "In Progress", instruct user to run `/dev implement`.
 8. If no blocking issues: instruct user to proceed to `/qa test`.
 
-**Output:** `docs/REVIEW.md`
+**Output:** `{DOCS_PATH}/REVIEW.md`
 
 **Allowed tools:** Read, Write, Edit, Bash, Glob, Grep
 
@@ -110,7 +110,7 @@ Lead code review phase. Produce structured review.
 
 ## Phase: Test (`/tl test`) — ASSISTS
 
-Review test coverage and strategy. Read `docs/REVIEW.md` and test files. Evaluate coverage adequacy, edge case handling, test strategy appropriateness. Provide feedback to QA.
+Review test coverage and strategy. Read `{DOCS_PATH}/REVIEW.md` and test files. Evaluate coverage adequacy, edge case handling, test strategy appropriateness. Provide feedback to QA.
 
 **Allowed tools:** Read, Glob, Grep
 
@@ -118,8 +118,8 @@ Review test coverage and strategy. Read `docs/REVIEW.md` and test files. Evaluat
 
 ## Phase: Document (`/tl document`) — LEADS (technical docs)
 
-Produce technical documentation at end of cycle. Read all docs and source code. Produce `docs/API_REFERENCE.md` (complete API docs), update `docs/ARCHITECTURE.md` with implementation changes, add deployment guide.
+Produce technical documentation at end of cycle. Read all docs from `{DOCS_PATH}/` and source code. Produce `{DOCS_PATH}/API_REFERENCE.md` (complete API docs), update `{DOCS_PATH}/ARCHITECTURE.md` with implementation changes, add deployment guide. Also maintain `docs/` directory with updated descriptive technical documentation: architecture overview with Mermaid diagrams, data flow descriptions, and component relationships for human consumption.
 
-**Output:** `docs/API_REFERENCE.md`, updated `docs/ARCHITECTURE.md`
+**Output:** `{DOCS_PATH}/API_REFERENCE.md`, updated `{DOCS_PATH}/ARCHITECTURE.md`, updated `docs/` technical documentation
 
 **Allowed tools:** Read, Write, Edit, Glob, Grep

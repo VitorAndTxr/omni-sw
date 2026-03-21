@@ -24,7 +24,7 @@ For project root resolution, backlog integration, and phase routing: read `share
 
 ## Phase: Plan (`/qa plan`) — ASSISTS
 
-Identify testability risks and ambiguous acceptance criteria. Read `docs/PROJECT_BRIEF.md` and `CLAUDE.md`. Assess: hard-to-test requirements, ambiguous ACs, missing edge cases, testing infrastructure needs. Provide testability notes to PM.
+Identify testability risks and ambiguous acceptance criteria. Read `{DOCS_PATH}/PROJECT_BRIEF.md` and `CLAUDE.md`. Assess: hard-to-test requirements, ambiguous ACs, missing edge cases, testing infrastructure needs. Provide testability notes to PM.
 
 **Allowed tools:** Read, Edit, Write
 
@@ -32,7 +32,7 @@ Identify testability risks and ambiguous acceptance criteria. Read `docs/PROJECT
 
 ## Phase: Design (`/qa design`) — ASSISTS
 
-Review architecture for testability. Read `docs/ARCHITECTURE.md` and `docs/BACKLOG.md`. Evaluate: component isolation, mockable dependencies, testable data model, well-defined API contracts, separation of concerns, component relationships in Mermaid diagrams match codebase structure. Flag concerns to TL.
+Review architecture for testability. Read `{DOCS_PATH}/ARCHITECTURE.md` and `agent_docs/backlog/BACKLOG.md`. Evaluate: component isolation, mockable dependencies, testable data model, well-defined API contracts, separation of concerns, component relationships in Mermaid diagrams match codebase structure. Flag concerns to TL.
 
 **Allowed tools:** Read, Glob, Grep
 
@@ -40,7 +40,7 @@ Review architecture for testability. Read `docs/ARCHITECTURE.md` and `docs/BACKL
 
 ## Phase: Review (`/qa review`) — ASSISTS
 
-Examine code for correctness and edge cases. Query stories "In Review", read source code. Review for: correctness against ACs, edge cases (null, empty, max, concurrent), error handling, input validation, data integrity. Add findings to `docs/REVIEW.md` under "QA Review" section. Categorize as **blocking** or **observation**.
+Examine code for correctness and edge cases. Query stories "In Review", read source code. Review for: correctness against ACs, edge cases (null, empty, max, concurrent), error handling, input validation, data integrity. Add findings to `{DOCS_PATH}/REVIEW.md` under "QA Review" section. Categorize as **blocking** or **observation**.
 
 **Allowed tools:** Read, Edit, Write, Bash, Glob, Grep
 
@@ -54,10 +54,10 @@ Lead testing phase. Write comprehensive tests and execute them.
 1. Query stories: `python {SCRIPT} list {BACKLOG_PATH} --status "In Review" --format summary`
 2. Transition to "In Testing": `python {SCRIPT} status {BACKLOG_PATH} --id <US-XXX> --status "In Testing" --caller qa`
 3. For each story, get full ACs: `python {SCRIPT} get {BACKLOG_PATH} --id <US-XXX>`
-4. Read `docs/ARCHITECTURE.md`, `docs/REVIEW.md`, `CLAUDE.md`, and source code.
+4. Read `{DOCS_PATH}/ARCHITECTURE.md`, `{DOCS_PATH}/REVIEW.md`, `CLAUDE.md`, and source code.
 5. Create test files: unit tests (services/logic), integration tests (API endpoints), edge case tests (boundaries from review).
 6. Execute test suite using project's test command (e.g., `dotnet test`, `npm test`).
-7. Produce `docs/TEST_REPORT.md` following template.
+7. Produce `{DOCS_PATH}/TEST_REPORT.md` following template.
 8. If tests pass: transition stories to "Done".
 9. If tests fail: document failures with reproduction steps. Categorize as **bug** (→ "In Progress", instruct `/dev implement`) or **test issue** (fix and re-run).
 10. Render updated backlog (once after all transitions).
@@ -72,7 +72,7 @@ Lead testing phase. Write comprehensive tests and execute them.
   |--------|----------|-------------|
   | tl-test-assist | Missing edge case for negative amounts | Added test: TransferNegativeAmount_ShouldThrow |
 
-**Output:** Test files in `tests/`, `docs/TEST_REPORT.md`
+**Output:** Test files in `tests/`, `{DOCS_PATH}/TEST_REPORT.md`
 
 **Allowed tools:** Read, Write, Edit, Bash, Glob, Grep
 
@@ -80,6 +80,6 @@ Lead testing phase. Write comprehensive tests and execute them.
 
 ## Phase: Document (`/qa document`) — ASSISTS
 
-Document test strategy and coverage. Read `docs/TEST_REPORT.md` and test files. Update test strategy docs, add testing section to README, verify all ACs have corresponding test cases documented.
+Document test strategy and coverage. Read `{DOCS_PATH}/TEST_REPORT.md` and test files. Update test strategy docs, add testing section to README, verify all ACs have corresponding test cases documented.
 
 **Allowed tools:** Read, Edit, Write, Glob, Grep

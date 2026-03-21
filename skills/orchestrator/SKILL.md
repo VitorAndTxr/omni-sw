@@ -77,10 +77,12 @@ Also verify these required fields from the `init` response:
 
 ### Step 2.2: Initialize state machine
 
+Derive a short description from the objective: take the first 3-4 meaningful words, convert to kebab-case, max 30 chars. Example: "Build user authentication API" → "build-user-authentication-api".
+
 ```bash
-python {CLI} state init --project {project_name} --objective "{OBJECTIVE}" --state-path {PROJECT_ROOT}/agent_docs/agency/STATE.json
+python {CLI} state init --project {project_name} --objective "{OBJECTIVE}" --state-path {PROJECT_ROOT}/agent_docs/agency/STATE.json --project-root {PROJECT_ROOT} --short-description "{SHORT_DESCRIPTION}"
 ```
-Store `{PROJECT_ROOT}/agent_docs/agency/STATE.json` as `STATE_PATH` for all subsequent commands.
+Store `{PROJECT_ROOT}/agent_docs/agency/STATE.json` as `STATE_PATH`. Parse the returned `docs_path` and store as `{DOCS_PATH}` — this is the timestamped working directory under `agent_docs/` where all phase artifacts will be written.
 
 ### Step 3: Complete setup
 
@@ -212,13 +214,13 @@ If `pipeline group` returns only 1 group, fall back to standard sequential mode.
 Use `agency_cli gate` to parse verdicts deterministically — no LLM reasoning needed:
 
 ```bash
-python {CLI} gate parse --file {PROJECT_ROOT}/docs/VALIDATION.md --phase validate
+python {CLI} gate parse --file {DOCS_PATH}/VALIDATION.md --phase validate
 # Returns: {found, pm, tl, combined, combined_verdict}
 
-python {CLI} gate parse --file {PROJECT_ROOT}/docs/REVIEW.md --phase review
+python {CLI} gate parse --file {DOCS_PATH}/REVIEW.md --phase review
 # Returns: {found, verdict, blocking_issues_estimate}
 
-python {CLI} gate parse --file {PROJECT_ROOT}/docs/TEST_REPORT.md --phase test
+python {CLI} gate parse --file {DOCS_PATH}/TEST_REPORT.md --phase test
 # Returns: {found, verdict, tests_passed, tests_failed}
 ```
 
@@ -258,7 +260,7 @@ python {CLI} gate check --phase validate --iteration 2 --max 3
 ## Progress Reporting (CLI-Assisted)
 
 ```bash
-python {CLI} report phase-summary --phase validate --artifacts "[\"docs/VALIDATION.md\"]" --gate "{\"verdict\": \"APPROVED\", \"action\": \"proceed\"}"
+python {CLI} report phase-summary --phase validate --artifacts "[\"{DOCS_PATH}/VALIDATION.md\"]" --gate "{\"verdict\": \"APPROVED\", \"action\": \"proceed\"}"
 ```
 
 ## Backlog Transitions (CLI-Assisted)
@@ -319,4 +321,4 @@ Notifications are non-blocking and silently skip on non-Windows systems.
 - `references/phase-matrix.md` — Agent/model assignments, gate conditions, dependencies
 - `references/phase-details.md` — Step-by-step instructions for each phase
 - `STATE.json` at `{PROJECT_ROOT}/agent_docs/agency/STATE.json` — Persistent state tracking
-- `docs/DECISIONS.md` — Append-only decision log
+- `{DOCS_PATH}/DECISIONS.md` — Append-only decision log (inside the timestamped working directory)

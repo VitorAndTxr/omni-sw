@@ -4,7 +4,7 @@ agency_cli state -- Persistent state machine for SDLC agency workflow.
 Manages STATE.json file tracking phases, gate verdicts, iterations, timestamps, and pipeline status.
 
 Usage:
-    agency_cli state init --project <name> --objective <text> --state-path <path>
+    agency_cli state init --project <name> --objective <text> --state-path <path> [--short-description <text>] [--project-root <path>]
     agency_cli state update --state-path <path> --phase <phase> --status <status> [--agent <name> --agent-status <status>] [--notes <text>]
     agency_cli state gate-record --state-path <path> --phase <phase> --verdict <verdict> [--pm <APPROVED|REPROVED>] [--tl <APPROVED|REPROVED>] [--tests-passed <n>] [--tests-failed <n>]
     agency_cli state query --state-path <path> [--phase <phase>] [--field <field>]
@@ -19,6 +19,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import sys
 import tempfile
 import shutil
@@ -94,7 +95,48 @@ def _validate_verdict(verdict: str) -> str:
     return verdict
 
 
-def create_initial_state(project_name: str, objective: str) -> dict:
+def _fwd(p: str) -> str:
+    """Normalize path to forward slashes for bash on Windows."""
+    return p.replace("\\", "/") if p else p
+
+
+def _derive_short_description(objective: str) -> str:
+    """Derive a kebab-case short description from the objective (max 30 chars)."""
+    # Remove special chars, keep letters/numbers/spaces
+    cleaned = re.sub(r'[^a-zA-Z0-9\s]', '', objective)
+    words = cleaned.strip().split()[:4]
+    kebab = "-".join(w.lower() for w in words)
+    return kebab[:30].rstrip("-")
+
+
+def create_docs_path(project_root: str, short_description: str) -> str:
+    """Create a timestamped docs subfolder under agent_docs/ and return its absolute path."""
+    now = datetime.now()
+    timestamp = now.strftime("%Y_%m_%d_%H_%M")
+    folder_name = f"{short_description}-{timestamp}"
+    docs_path = os.path.join(project_root, "agent_docs", folder_name)
+    os.makedirs(docs_path, exist_ok=True)
+    return docs_path
+
+
+def get_docs_path(state_path: str, project_root: str = None) -> str:
+    """Read docs_path from STATE.json, falling back to {project_root}/docs/.
+
+    If state doesn't exist or has no docs_path, returns the fallback.
+    """
+    try:
+        state = _load_state(state_path)
+        dp = state.get("docs_path")
+        if dp:
+            return dp
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    if project_root:
+        return _fwd(os.path.join(project_root, "docs"))
+    return "docs"
+
+
+def create_initial_state(project_name: str, objective: str, docs_path: str = None) -> dict:
     """Create a new STATE.json structure."""
     now = _get_now_iso()
 
@@ -109,10 +151,11 @@ def create_initial_state(project_name: str, objective: str) -> dict:
             "notes": "",
         }
 
-    return {
-        "version": "1.0",
+    state = {
+        "version": "1.1",
         "project": project_name,
         "objective": objective,
+        "docs_path": docs_path,
         "created_at": now,
         "updated_at": now,
         "current_phase": None,
@@ -125,6 +168,7 @@ def create_initial_state(project_name: str, objective: str) -> dict:
             "phase_durations": {},
         },
     }
+    return state
 
 
 def init_state(args: list[str]) -> dict:
@@ -133,20 +177,32 @@ def init_state(args: list[str]) -> dict:
     parser.add_argument("--project", required=True, help="Project name")
     parser.add_argument("--objective", required=True, help="Project objective")
     parser.add_argument("--state-path", required=True, help="Path to STATE.json file")
+    parser.add_argument("--project-root", required=False, default=None,
+                        help="Project root path (needed for docs subfolder creation)")
+    parser.add_argument("--short-description", required=False, default=None,
+                        help="Short description for docs subfolder (auto-derived from objective if omitted)")
     opts = parser.parse_args(args)
 
     state_path = os.path.abspath(opts.state_path)
     if os.path.exists(state_path):
         raise FileExistsError(f"State file already exists: {state_path}")
 
-    state = create_initial_state(opts.project, opts.objective)
+    # Create timestamped docs subfolder
+    docs_path = None
+    if opts.project_root:
+        project_root = os.path.abspath(opts.project_root)
+        short_desc = opts.short_description or _derive_short_description(opts.objective)
+        docs_path = _fwd(create_docs_path(project_root, short_desc))
+
+    state = create_initial_state(opts.project, opts.objective, docs_path=docs_path)
     _save_state(state_path, state)
 
     return {
         "status": "created",
-        "state_path": state_path,
+        "state_path": _fwd(state_path),
         "project": opts.project,
         "objective": opts.objective,
+        "docs_path": docs_path,
         "initial_state": state,
     }
 
@@ -537,17 +593,19 @@ def checkpoint_state(args: list[str]) -> dict:
 
         lines.append(line)
 
-    # Add artifact inventory
+    # Add artifact inventory (resolve through docs_path if available)
+    docs_path = state.get("docs_path") or os.path.join(project_root, "docs")
     lines.extend(["", "## Artifacts Produced", ""])
     for p in PHASES:
         if state["phases"][p]["status"] not in ("completed", "in_progress"):
             continue
-        from commands.phase import PHASE_INFO
+        from commands.phase import PHASE_INFO, resolve_artifact_path
         if p in PHASE_INFO:
             for artifact in PHASE_INFO[p]["artifacts"]:
-                abs_path = os.path.join(project_root, artifact)
+                resolved = resolve_artifact_path(artifact, docs_path)
+                abs_path = os.path.join(project_root, resolved) if not os.path.isabs(resolved) else resolved
                 exists = os.path.exists(abs_path)
-                lines.append(f"- {'✅' if exists else '❌'} `{artifact}`")
+                lines.append(f"- {'✅' if exists else '❌'} `{resolved}`")
 
     # Add notes from phases
     notes_found = False

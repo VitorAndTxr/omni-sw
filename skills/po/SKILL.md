@@ -45,7 +45,7 @@ Migrate `docs/BACKLOG.md` (old markdown) to JSON backlog with review team.
 Break down project brief into actionable user stories.
 
 **Workflow:**
-1. Read `docs/PROJECT_BRIEF.md` and `CLAUDE.md`.
+1. Read `{DOCS_PATH}/PROJECT_BRIEF.md` and `CLAUDE.md`.
 2. Initialize backlog if needed: `python {SCRIPT} init {BACKLOG_PATH}`
 3. For each objective, create stories:
    ```bash
@@ -66,7 +66,7 @@ Break down project brief into actionable user stories.
 
 ## Phase: Validate (`/po validate`) — ASSISTS
 
-Review design for business rule compliance. Read `docs/ARCHITECTURE.md`, query backlog stories in design, verify every story has implementation path, no ACs contradicted, business rules correctly represented. Add review notes to `docs/VALIDATION.md` under "Product Owner Review" section.
+Review design for business rule compliance. Read `{DOCS_PATH}/ARCHITECTURE.md`, query backlog stories in design, verify every story has implementation path, no ACs contradicted, business rules correctly represented. Add review notes to `{DOCS_PATH}/VALIDATION.md` under "Product Owner Review" section.
 
 **Allowed tools:** Read, Write, Edit, Bash
 

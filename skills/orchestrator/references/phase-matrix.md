@@ -6,13 +6,13 @@ Quick reference for the orchestrator's phase routing logic and model assignments
 
 | Phase | Lead Agent | Lead Model | Skill Command | Assist Agents | Assist Model | Output Artifacts |
 |-------|-----------|------------|---------------|---------------|--------------|------------------|
-| Plan | PM | opus | `/pm plan` | PO (sonnet), TL/Dev/QA (haiku) | — | `docs/PROJECT_BRIEF.md`, backlog |
-| Design | TL | opus | `/tl design` | Dev/QA (haiku) | — | `docs/ARCHITECTURE.md` |
-| Validate | PM + TL | opus | `/pm validate` + `/tl validate` | PO (haiku) | — | `docs/VALIDATION.md` |
+| Plan | PM | opus | `/pm plan` | PO (sonnet), TL/Dev/QA (haiku) | — | `{DOCS_PATH}/PROJECT_BRIEF.md`, backlog |
+| Design | TL | opus | `/tl design` | Dev/QA (haiku) | — | `{DOCS_PATH}/ARCHITECTURE.md` |
+| Validate | PM + TL | opus | `/pm validate` + `/tl validate` | PO (haiku) | — | `{DOCS_PATH}/VALIDATION.md` |
 | Implement | Dev | sonnet | `/dev implement` | TL (sonnet) | — | Source code in `src/` |
-| Review | TL | sonnet | `/tl review` | QA (haiku) | — | `docs/REVIEW.md` |
-| Test | QA | sonnet | `/qa test` | TL (haiku) | — | Tests in `tests/`, `docs/TEST_REPORT.md` |
-| Document | PM + TL | sonnet | `/pm document` + `/tl document` | PO/Dev/QA (haiku) | — | `README.md`, `CHANGELOG.md`, `docs/API_REFERENCE.md` |
+| Review | TL | sonnet | `/tl review` | QA (haiku) | — | `{DOCS_PATH}/REVIEW.md` |
+| Test | QA | sonnet | `/qa test` | TL (haiku) | — | Tests in `tests/`, `{DOCS_PATH}/TEST_REPORT.md` |
+| Document | PM + TL | sonnet | `/pm document` + `/tl document` | PO/Dev/QA (haiku) | — | `README.md`, `CHANGELOG.md`, `{DOCS_PATH}/API_REFERENCE.md` |
 
 ## Model Routing
 

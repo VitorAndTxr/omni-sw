@@ -25,12 +25,28 @@ def is_dev_implement_command(command):
     """Check if command is a /dev implement invocation."""
     return bool(re.search(r'/dev\s+implement', command))
 
+def get_docs_path(project_root):
+    """Read docs_path from STATE.json, falling back to docs/."""
+    state_path = os.path.join(project_root, "agent_docs", "agency", "STATE.json")
+    if os.path.exists(state_path):
+        try:
+            with open(state_path, 'r') as f:
+                state = json.load(f)
+            dp = state.get("docs_path")
+            if dp and os.path.isdir(dp):
+                return dp
+        except (json.JSONDecodeError, IOError):
+            pass
+    return os.path.join(project_root, "docs")
+
+
 def check_validation_approved(project_root):
     """
     Check if VALIDATION.md contains two [VERDICT:APPROVED] markers.
     Returns (approved, reason) tuple.
     """
-    validation_path = os.path.join(project_root, "docs", "VALIDATION.md")
+    docs_path = get_docs_path(project_root)
+    validation_path = os.path.join(docs_path, "VALIDATION.md")
 
     if not os.path.exists(validation_path):
         return False, "VALIDATION.md not found"
@@ -86,7 +102,7 @@ if not approved:
         f"BLOCKED: Cannot proceed with /dev implement.\n"
         f"Reason: {reason}\n\n"
         "Implementation requires validation approval from both PM and TL.\n"
-        "Edit docs/VALIDATION.md and ensure it contains:\n"
+        "Edit VALIDATION.md (in the current DOCS_PATH or docs/) and ensure it contains:\n"
         "  1. Business Validation section with [VERDICT:APPROVED]\n"
         "  2. Technical Validation section with [VERDICT:APPROVED]\n"
         "Then return to implementation.\n",

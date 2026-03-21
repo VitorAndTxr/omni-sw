@@ -45,7 +45,7 @@ Lead planning. Gather requirements from client and produce structured project br
 **Workflow:**
 1. Read existing `CLAUDE.md` for project context.
 2. Engage client in structured conversation: business objectives, scope, constraints, stakeholders, risks.
-3. Produce `docs/PROJECT_BRIEF.md` following template in `~/.claude/docs/templates/PROJECT_BRIEF.md`.
+3. Produce `{DOCS_PATH}/PROJECT_BRIEF.md` following template in `~/.claude/docs/templates/PROJECT_BRIEF.md`.
 4. **Feedback Integration:** If TL/Dev/QA assists provided notes (risk assessment, implementability, testability), append a `## Feedback Integration` section to PROJECT_BRIEF.md:
    ```markdown
    ## Feedback Integration
@@ -58,7 +58,7 @@ Lead planning. Gather requirements from client and produce structured project br
 5. **Optional team orchestration:** Spawn PO to create backlog from brief in parallel.
 6. If not using teams: instruct user to invoke `/po plan`.
 
-**Output:** `docs/PROJECT_BRIEF.md`
+**Output:** `{DOCS_PATH}/PROJECT_BRIEF.md`
 
 **Allowed tools:** Read, Write, Edit, Bash, AskUserQuestion, Task, TaskCreate, TaskUpdate, TaskList, TeamCreate, SendMessage
 
@@ -71,14 +71,14 @@ Lead planning. Gather requirements from client and produce structured project br
 Lead business validation gate. Review design against business objectives.
 
 **Workflow:**
-1. Read `docs/PROJECT_BRIEF.md`, `docs/ARCHITECTURE.md`.
+1. Read `{DOCS_PATH}/PROJECT_BRIEF.md`, `{DOCS_PATH}/ARCHITECTURE.md`.
 2. Query backlog summary: `python {SCRIPT} list {BACKLOG_PATH} --format summary`
 3. Evaluate: objectives addressed, scope respected, constraints met, success criteria supported, architecture diagrams (Mermaid) align with business requirements.
 4. Produce verdict: **APPROVED** or **REPROVED** with rationale.
-5. Write business validation section in `docs/VALIDATION.md`.
+5. Write business validation section in `{DOCS_PATH}/VALIDATION.md`.
 6. If REPROVED: specify changes needed, instruct user to go back to `/pm plan`.
 
-**Output:** Business validation section in `docs/VALIDATION.md`
+**Output:** Business validation section in `{DOCS_PATH}/VALIDATION.md`
 
 **Allowed tools:** Read, Write, Edit, Bash, AskUserQuestion, Task, TaskCreate, TaskUpdate, TaskList, TeamCreate, SendMessage
 
@@ -86,14 +86,15 @@ Lead business validation gate. Review design against business objectives.
 
 ## Phase: Document (`/pm document`) — LEADS (business docs)
 
-Produce user-facing documentation at end of cycle.
+Produce user-facing documentation and maintain descriptive project docs at end of cycle.
 
 **Workflow:**
-1. Read all existing docs and query delivered stories: `python {SCRIPT} list {BACKLOG_PATH} --status Done --fields id,title,feature_area`
+1. Read all existing docs from `{DOCS_PATH}/` and query delivered stories: `python {SCRIPT} list {BACKLOG_PATH} --status Done --fields id,title,feature_area`
 2. Read source code structure.
 3. Produce `README.md` (user-facing overview, setup, usage) and `CHANGELOG.md`.
-4. Write for target audience (end users, stakeholders), not developers.
+4. Maintain `docs/` directory with updated descriptive documentation: architecture overview, flow diagrams, and high-level project description for human consumption.
+5. Write for target audience (end users, stakeholders), not developers.
 
-**Output:** `README.md`, `CHANGELOG.md`
+**Output:** `README.md`, `CHANGELOG.md`, updated `docs/` descriptive documentation
 
 **Allowed tools:** Read, Write, Edit, Bash, Glob, Grep

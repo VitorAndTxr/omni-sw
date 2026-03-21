@@ -4,7 +4,7 @@ Step-by-step orchestration instructions for each phase. The orchestrator reads t
 
 ## Phase 1: Plan
 
-**Goal:** `docs/PROJECT_BRIEF.md` + backlog.
+**Goal:** `{DOCS_PATH}/PROJECT_BRIEF.md` + backlog.
 
 | Name | Model | Role |
 |------|-------|------|
@@ -24,7 +24,7 @@ Step-by-step orchestration instructions for each phase. The orchestrator reads t
 
 ## Phase 2: Design
 
-**Goal:** `docs/ARCHITECTURE.md`.
+**Goal:** `{DOCS_PATH}/ARCHITECTURE.md`.
 
 | Name | Model | Role |
 |------|-------|------|
@@ -40,7 +40,7 @@ Step-by-step orchestration instructions for each phase. The orchestrator reads t
 
 ## Phase 3: Validate (GATE)
 
-**Goal:** `docs/VALIDATION.md` with dual verdicts.
+**Goal:** `{DOCS_PATH}/VALIDATION.md` with dual verdicts.
 
 | Name | Model | Role |
 |------|-------|------|
@@ -51,7 +51,7 @@ Step-by-step orchestration instructions for each phase. The orchestrator reads t
 1. **Tasks:** "PM: Business validation" → `pm-validate`. "TL: Technical validation" → `tl-validate`. PO assist (optional).
 2. Spawn `pm-validate` and `tl-validate` (opus) **in parallel** with lead prompt template. Append: "End output with `[VERDICT:APPROVED]` or `[VERDICT:REPROVED]`."
 3. **(Parallel)** Spawn `po-validate-assist` (haiku).
-4. Monitor `TaskList` until both leads complete. Read `docs/VALIDATION.md`, extract verdicts.
+4. Monitor `TaskList` until both leads complete. Read `{DOCS_PATH}/VALIDATION.md`, extract verdicts.
 5. **Shutdown** all Phase 3 agents.
 6. **Gate:** Both APPROVED → Phase 4. PM REPROVED → loop to Phase 1. TL REPROVED → loop to Phase 2. Escalate after 3 iterations.
 
@@ -89,7 +89,7 @@ TL assist uses Sonnet (not Haiku) — technical guidance requires architecture c
 
 ## Phase 5: Review (GATE)
 
-**Goal:** `docs/REVIEW.md`.
+**Goal:** `{DOCS_PATH}/REVIEW.md`.
 
 | Name | Model | Role |
 |------|-------|------|
@@ -99,7 +99,7 @@ TL assist uses Sonnet (not Haiku) — technical guidance requires architecture c
 1. **Tasks:** "TL: Code review" → `tl-review`. "QA: Correctness review" → `qa-review-assist` (blocked by TL, optional).
 2. Spawn `tl-review` (sonnet) with lead prompt template: invoke `/tl review`. Append: "End output with `[GATE:PASS]` or `[GATE:FAIL]`."
 3. Once TL completes, spawn `qa-review-assist` (haiku).
-4. Read `docs/REVIEW.md`, extract gate status.
+4. Read `{DOCS_PATH}/REVIEW.md`, extract gate status.
 5. **Shutdown** all Phase 5 agents.
 6. **Gate:** PASS → Phase 6. FAIL → loop to Phase 4. Escalate after 3 iterations.
 
@@ -110,13 +110,13 @@ TL assist uses Sonnet (not Haiku) — technical guidance requires architecture c
    - Spawn TL review scoped to ready stories only
    - Name: `tl-review-{feature}`
    - Do NOT wait for all implementation to complete
-3. Each review produces findings in `docs/REVIEW_{feature}.md` (feature-scoped)
-4. Merge all feature reviews into `docs/REVIEW.md` when all reviews complete
+3. Each review produces findings in `{DOCS_PATH}/REVIEW_{feature}.md` (feature-scoped)
+4. Merge all feature reviews into `{DOCS_PATH}/REVIEW.md` when all reviews complete
 5. Gate evaluation happens per-feature: a feature can proceed to test while another is still in review
 
 ## Phase 6: Test (GATE)
 
-**Goal:** Tests in `tests/` + `docs/TEST_REPORT.md`.
+**Goal:** Tests in `tests/` + `{DOCS_PATH}/TEST_REPORT.md`.
 
 | Name | Model | Role |
 |------|-------|------|
@@ -126,7 +126,7 @@ TL assist uses Sonnet (not Haiku) — technical guidance requires architecture c
 1. **Tasks:** "QA: Write and execute tests" → `qa-test`. "TL: Coverage review" → `tl-test-assist` (blocked by QA, optional).
 2. Spawn `qa-test` (sonnet) with lead prompt template: invoke `/qa test`. Append: "End output with `[GATE:PASS]`, `[GATE:FAIL_BUG]`, or `[GATE:FAIL_TEST]`."
 3. Once QA completes, spawn `tl-test-assist` (haiku).
-4. Read `docs/TEST_REPORT.md`, extract gate status.
+4. Read `{DOCS_PATH}/TEST_REPORT.md`, extract gate status.
 5. **Shutdown** all Phase 6 agents.
 6. **Gate:** PASS → Phase 7. FAIL_BUG → loop to Phase 4. FAIL_TEST → spawn `qa-test-fix` (sonnet) to fix and re-run. Escalate after 3 iterations.
 
@@ -134,8 +134,8 @@ TL assist uses Sonnet (not Haiku) — technical guidance requires architecture c
 
 1. Check for reviewed stories: `python {CLI} pipeline ready-for --backlog-path {BACKLOG_PATH} --script-path {SCRIPT_PATH} --phase test`
 2. Spawn QA per feature as they pass review
-3. Feature-scoped test reports: `docs/TEST_REPORT_{feature}.md`
-4. Merge into final `docs/TEST_REPORT.md`
+3. Feature-scoped test reports: `{DOCS_PATH}/TEST_REPORT_{feature}.md`
+4. Merge into final `{DOCS_PATH}/TEST_REPORT.md`
 5. Document phase starts only after ALL features pass test
 
 ## Phase 7: Document

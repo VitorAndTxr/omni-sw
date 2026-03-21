@@ -139,7 +139,8 @@ def _bash_path(path: str) -> str:
 
 def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
                     backlog_path: str, objective: str, agent_type: str = None,
-                    cli_path: str = None, state_path: str = None) -> str:
+                    cli_path: str = None, state_path: str = None,
+                    docs_path: str = None) -> str:
     """Generate the full agent spawn prompt.
 
     All paths are normalized to forward slashes for bash compatibility on Windows.
@@ -160,6 +161,7 @@ def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
     backlog_path = _bash_path(backlog_path)
     cli_path = _bash_path(cli_path) if cli_path else None
     state_path = _bash_path(state_path) if state_path else None
+    docs_path = _bash_path(docs_path) if docs_path else None
 
     # Build environment block with all resolved paths
     env_lines = [
@@ -171,6 +173,8 @@ def generate_prompt(role: str, phase: str, project_root: str, script_path: str,
         env_lines.append(f"CLI_PATH={cli_path}")
     if state_path:
         env_lines.append(f"STATE_PATH={state_path}")
+    if docs_path:
+        env_lines.append(f"DOCS_PATH={docs_path}")
     env_block = " | ".join(env_lines)
 
     if atype == "lead":

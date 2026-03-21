@@ -77,7 +77,8 @@ def validate_transition(from_status: str, to_status: str) -> dict:
 
 def run_backlog_cmd(script_path: str, backlog_path: str, cmd_args: list[str]) -> dict:
     """Execute backlog_manager.py and return parsed JSON output."""
-    full_cmd = [sys.executable, script_path] + cmd_args + [backlog_path]
+    # Insert backlog_path right after the subcommand (first positional arg)
+    full_cmd = [sys.executable, script_path, cmd_args[0], backlog_path] + cmd_args[1:]
     try:
         result = subprocess.run(full_cmd, capture_output=True, text=True, timeout=30)
         if result.returncode != 0:
@@ -202,7 +203,7 @@ def query_by_profile(backlog_path: str, script_path: str, phase: str,
         status = None
 
     prof = QUERY_PROFILES[profile]
-    cmd = ["list", backlog_path]
+    cmd = ["list"]
     if status:
         cmd.extend(["--status", status])
     if prof["format"]:

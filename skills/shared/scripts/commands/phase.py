@@ -68,6 +68,13 @@ PHASE_INFO = {
 }
 
 
+def resolve_artifact_path(artifact_template: str, docs_path: str) -> str:
+    """Replace 'docs/' prefix with the dynamic docs_path if applicable."""
+    if artifact_template.startswith("docs/"):
+        return os.path.join(docs_path, artifact_template[5:])
+    return artifact_template
+
+
 def get_next_phase(current: str, verdict: str) -> dict:
     """Determine next phase based on current phase and gate verdict."""
     current = current.lower()
@@ -109,8 +116,12 @@ def get_next_phase(current: str, verdict: str) -> dict:
     raise ValueError(f"Invalid phase/verdict combination: {current}/{verdict}")
 
 
-def get_artifacts(phase: str, project_root: str) -> dict:
-    """Resolve artifact absolute paths for a phase."""
+def get_artifacts(phase: str, project_root: str, docs_path: str = None) -> dict:
+    """Resolve artifact absolute paths for a phase.
+
+    If docs_path is provided, artifacts with 'docs/' prefix are resolved
+    to the dynamic docs directory instead.
+    """
     phase = phase.lower()
     if phase not in PHASE_INFO:
         raise ValueError(f"Unknown phase: {phase}. Valid: {', '.join(PHASES)}")
@@ -118,16 +129,21 @@ def get_artifacts(phase: str, project_root: str) -> dict:
     info = PHASE_INFO[phase]
     resolved = []
     for artifact in info["artifacts"]:
+        if docs_path:
+            artifact_resolved = resolve_artifact_path(artifact, docs_path)
+        else:
+            artifact_resolved = artifact
+        abs_path = os.path.join(project_root, artifact_resolved) if not os.path.isabs(artifact_resolved) else artifact_resolved
         resolved.append({
-            "relative": artifact,
-            "absolute": os.path.join(project_root, artifact),
-            "exists": os.path.exists(os.path.join(project_root, artifact)),
+            "relative": artifact_resolved,
+            "absolute": abs_path,
+            "exists": os.path.exists(abs_path),
         })
 
     return {"phase": phase, "artifacts": resolved}
 
 
-def validate_artifacts(phase: str, project_root: str) -> dict:
+def validate_artifacts(phase: str, project_root: str, docs_path: str = None) -> dict:
     """Check if required artifacts from a phase exist before proceeding."""
     phase = phase.lower()
     if phase not in PHASE_INFO:
@@ -138,7 +154,9 @@ def validate_artifacts(phase: str, project_root: str) -> dict:
     all_exist = True
 
     for artifact in info["artifacts"]:
-        abs_path = os.path.join(project_root, artifact)
+        if docs_path:
+            artifact = resolve_artifact_path(artifact, docs_path)
+        abs_path = os.path.join(project_root, artifact) if not os.path.isabs(artifact) else artifact
         exists = os.path.exists(abs_path)
         is_dir = os.path.isdir(abs_path)
         is_empty = False
@@ -240,7 +258,12 @@ def prepare_phase(args: list[str]) -> dict:
         state["current_phase"] = phase
     _save_state(state_path, state)
 
-    # --- 3. Get agent order + prompts ---
+    # --- 3. Read docs_path from state ---
+    docs_path = state.get("docs_path")
+    if not docs_path:
+        docs_path = os.path.join(opts.project_root, "docs").replace("\\", "/")
+
+    # --- 4. Get agent order + prompts ---
     from commands.agent import (
         AGENT_MATRIX, PHASE_ORDER, GATE_SUFFIXES,
         get_agent_name, generate_prompt, validate_phase as agent_validate_phase
@@ -267,6 +290,7 @@ def prepare_phase(args: list[str]) -> dict:
                 role, phase, opts.project_root,
                 opts.script_path, opts.backlog_path, objective, info["type"],
                 cli_path=cli_path, state_path=opts.state_path,
+                docs_path=docs_path,
             )
 
             wave_agents.append({
@@ -285,13 +309,14 @@ def prepare_phase(args: list[str]) -> dict:
                 "agents": wave_agents,
             })
 
-    # --- 4. Get phase artifacts ---
+    # --- 5. Get phase artifacts (resolved through docs_path) ---
     info = PHASE_INFO[phase]
     artifacts = []
     for artifact in info["artifacts"]:
-        abs_path = os.path.join(opts.project_root, artifact).replace("\\", "/")
+        resolved = resolve_artifact_path(artifact, docs_path)
+        abs_path = os.path.join(opts.project_root, resolved).replace("\\", "/") if not os.path.isabs(resolved) else resolved.replace("\\", "/")
         artifacts.append({
-            "relative": artifact,
+            "relative": resolved,
             "absolute": abs_path,
             "exists": os.path.exists(abs_path),
         })
@@ -301,6 +326,7 @@ def prepare_phase(args: list[str]) -> dict:
         "phase": phase,
         "goal": info["goal"],
         "has_gate": info.get("has_gate", False),
+        "docs_path": docs_path,
         "state_updated": True,
         "skip_assists": opts.skip_assists,
         "waves": waves,

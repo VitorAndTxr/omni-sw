@@ -14,6 +14,12 @@ import glob
 import os
 import json
 import copy
+import sys
+
+
+def _fwd(p: str) -> str:
+    """Normalize path to forward slashes for bash on Windows."""
+    return p.replace("\\", "/") if p else p
 
 
 def find_claude_md(scan_root: str) -> str | None:
@@ -29,15 +35,18 @@ def find_claude_md(scan_root: str) -> str | None:
 
 
 def find_backlog_script(scan_root: str) -> str | None:
-    """Find backlog_manager.py via glob pattern."""
+    """Find backlog_manager.py via glob pattern. Prefers shortest path (closest to root)."""
     pattern = os.path.join(scan_root, '**', 'backlog', 'scripts', 'backlog_manager.py')
     matches = glob.glob(pattern, recursive=True)
-    if matches:
-        return matches[0]
-    # Fallback: broader search
-    pattern2 = os.path.join(scan_root, '**', 'backlog_manager.py')
-    matches2 = glob.glob(pattern2, recursive=True)
-    return matches2[0] if matches2 else None
+    if not matches:
+        # Fallback: broader search
+        pattern2 = os.path.join(scan_root, '**', 'backlog_manager.py')
+        matches = glob.glob(pattern2, recursive=True)
+    if not matches:
+        return None
+    # Prefer shortest path (closest to scan_root = most likely correct)
+    matches.sort(key=lambda p: len(p))
+    return matches[0]
 
 
 def derive_team_name(project_root: str) -> str:
@@ -71,12 +80,13 @@ def install_hooks(project_root: str) -> dict:
     plugin_root = get_plugin_root()
     cli_script = os.path.join(plugin_root, "skills", "shared", "scripts", "agency_cli.py")
 
-    # Normalize path separators for bash on Windows
-    cli_script_cmd = cli_script.replace("\\", "/")
+    # Use the exact Python interpreter that ran this script, normalized for bash
+    python_exe = _fwd(sys.executable)
+    cli_script_cmd = _fwd(cli_script)
 
     hook_entry = {
         "type": "command",
-        "command": f"python \"{cli_script_cmd}\" notify input-needed",
+        "command": f"\"{python_exe}\" \"{cli_script_cmd}\" notify input-needed",
         "timeout": 10
     }
 
@@ -90,7 +100,7 @@ def install_hooks(project_root: str) -> dict:
 
     os.makedirs(claude_dir, exist_ok=True)
 
-    result = {"hooks_file": hooks_file}
+    result = {"hooks_file": _fwd(hooks_file)}
 
     if os.path.isfile(hooks_file):
         # Merge into existing hooks.json
@@ -157,12 +167,13 @@ def handle_init(args: list[str]) -> dict:
         backlog_dir = os.path.dirname(backlog_path)
         os.makedirs(backlog_dir, exist_ok=True)
 
+    # Normalize all paths to forward slashes for bash on Windows
     result = {
-        "project_root": project_root,
-        "script_path": script_path,
-        "backlog_path": backlog_path,
+        "project_root": _fwd(project_root),
+        "script_path": _fwd(script_path),
+        "backlog_path": _fwd(backlog_path),
         "team_name": team_name,
-        "claude_md": os.path.join(project_root, "CLAUDE.md"),
+        "claude_md": _fwd(os.path.join(project_root, "CLAUDE.md")),
         "backlog_exists": os.path.isfile(backlog_path),
         "claude_md_exists": os.path.isfile(os.path.join(project_root, "CLAUDE.md")),
     }
