@@ -1,8 +1,21 @@
 {
-"name": "omni-sw",
-"description": "Uma agência de software que busca alavancar e reduzir o tempo de prototipagem e validação técnica de aplicações",
-"version": "0.0.1",
-"author": {
-	"name": "Vitor_And_Txr"
-	}
+  "name": "omni-sw",
+  "description": "Uma agência de software que busca alavancar e reduzir o tempo de prototipagem e validação técnica de aplicações",
+  "version": "0.1.0",
+  "author": {
+    "name": "Vitor_And_Txr",
+    "url": "https://github.com/VitorAndTxr"
+  },
+  "repository": "https://github.com/VitorAndTxr/omni-sw",
+  "license": "MIT",
+  "keywords": [
+    "agency",
+    "software-development",
+    "prototyping",
+    "orchestrator",
+    "qa",
+    "pm",
+    "backlog"
+  ],
+  "skills": "./skills/"
 }

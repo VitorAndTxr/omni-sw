@@ -1,0 +1,15 @@
+{
+  "name": "omni-sw-marketplace",
+  "description": "Marketplace do plugin omni-sw - agência de software para prototipagem e validação técnica",
+  "plugins": [
+    {
+      "name": "omni-sw",
+      "description": "Uma agência de software que busca alavancar e reduzir o tempo de prototipagem e validação técnica de aplicações",
+      "version": "0.1.0",
+      "source": {
+        "type": "github",
+        "repo": "VitorAndTxr/omni-sw"
+      }
+    }
+  ]
+}
